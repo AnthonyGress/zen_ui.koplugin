@@ -411,14 +411,14 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
             visual_gaps = home["visual_gaps"]
             assert len(visual_gaps) == 2
             assert max(visual_gaps) - min(visual_gaps) <= 1, home
-            assert abs(
-                int(home["bottom_visual_inset"])
-                - int(home["top_visual_inset"])
-            ) <= 2, home
             if last_widget == "quotes":
-                quote_bottom = int(home["quote_content_bounds"]["bottom"])
-                bottom_inset = int(home["body_height"]) - quote_bottom
-                assert abs(bottom_inset - int(home["top_visual_inset"])) <= 2, home
+                assert int(home["bottom_visual_inset"]) \
+                    == int(home["page_padding"]), home
+            else:
+                assert abs(
+                    int(home["bottom_visual_inset"])
+                    - int(home["top_visual_inset"])
+                ) <= 2, home
             if first_widget == "datetime":
                 heights = home["widget_heights"]
                 assert int(heights["featured"]) \

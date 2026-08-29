@@ -315,5 +315,11 @@ return {
         "Fix: allow cancelling ZenPM download and time out after one minute",
         "Fix reader highlight crash",
         "Fix some icons not rendering"
+     },
+     ["3.3.9"] = {
+        "Add support for multiple quote files",
+        "Add context to translations",
+        "Add language in Zen Settings > About",
+        "Add more toggles/options to Featured widget"
      }
 }

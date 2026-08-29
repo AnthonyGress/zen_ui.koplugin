@@ -53,4 +53,5 @@ python3 translation_utils.py --sync
 This removes dead entries, adds missing entries, translates empty `msgstr`
 values, and alphabetizes each catalog. Untranslated English strings are sent to
 Google Translate; existing translations are preserved. Use `--locale LOCALE`
-to process only one catalog.
+to process only one catalog. Generated entries include nearby Lua context and
+`filename.lua:line` references for translators.

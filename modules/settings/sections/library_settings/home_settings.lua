@@ -146,9 +146,13 @@ end
 local function ensure_featured_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
     mcfg.order = nil
+    if mcfg.show_author == nil then mcfg.show_author = true end
+    if mcfg.show_series == nil then mcfg.show_series = true end
     if mcfg.show_description == nil then mcfg.show_description = true end
     if mcfg.show_progress == nil then mcfg.show_progress = true end
     if mcfg.wrap_description_text == nil then mcfg.wrap_description_text = false end
+    if mcfg.justify_description_text == nil then mcfg.justify_description_text = false end
+    if mcfg.format_description_html == nil then mcfg.format_description_html = false end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
     if mcfg.status_bar_show_bottom_border == nil then mcfg.status_bar_show_bottom_border = true end
@@ -490,16 +494,6 @@ function M.build(ctx)
         end
         return {
             {
-                text = _("Enable"),
-                checked_func = function()
-                    return mcfg.show_progress ~= false
-                end,
-                callback = function()
-                    mcfg.show_progress = mcfg.show_progress == false
-                    save_home("reinit")
-                end,
-            },
-            {
                 text_func = function()
                     return _("Left") .. ": " .. progress_label(mcfg.progress_meta.left)
                 end,
@@ -686,7 +680,7 @@ function M.build(ctx)
 
     local function build_featured_text_style_items(mcfg, key, label)
         local defaults = FEATURED_TEXT_STYLE_DEFAULTS[key]
-        return {
+        local items = {
             {
                 text_func = function()
                     local style = ensure_featured_text_style(mcfg, key)
@@ -752,18 +746,71 @@ function M.build(ctx)
                     save_featured_text_style(touchmenu_instance)
                 end,
             },
-            {
-                text = _("Use default style"),
-                callback = function(touchmenu_instance)
-                    mcfg.text_styles[key] = {
-                        font_face = defaults.font_face,
-                        font_size = defaults.font_size,
-                        bold = defaults.bold,
-                    }
-                    save_featured_text_style(touchmenu_instance)
-                end,
-            },
         }
+        if key == "description" then
+            items[#items + 1] = {
+                text = _("Wrap description text"),
+                checked_func = function()
+                    return mcfg.wrap_description_text == true
+                end,
+                callback = function()
+                    mcfg.wrap_description_text = mcfg.wrap_description_text ~= true
+                    save_home("reinit")
+                end,
+            }
+            items[#items + 1] = {
+                text = _("Justify text"),
+                checked_func = function()
+                    return mcfg.justify_description_text == true
+                end,
+                callback = function()
+                    mcfg.justify_description_text = mcfg.justify_description_text ~= true
+                    save_home("reinit")
+                end,
+            }
+            items[#items + 1] = {
+                text = _("HTML"),
+                checked_func = function()
+                    return mcfg.format_description_html == true
+                end,
+                callback = function()
+                    mcfg.format_description_html = mcfg.format_description_html ~= true
+                    save_home("reinit")
+                end,
+            }
+        end
+        items[#items + 1] = {
+            text = _("Use default style"),
+            callback = function(touchmenu_instance)
+                mcfg.text_styles[key] = {
+                    font_face = defaults.font_face,
+                    font_size = defaults.font_size,
+                    bold = defaults.bold,
+                }
+                save_featured_text_style(touchmenu_instance)
+            end,
+        }
+        return items
+    end
+
+    local function featured_text_style_item(mcfg, key, label, show_key)
+        local item = {
+            sub_title = label,
+            text_func = function()
+                return label .. ": " .. featured_text_style_summary(mcfg, key)
+            end,
+            sub_item_table = build_featured_text_style_items(mcfg, key, label),
+        }
+        if show_key then
+            item.checked_func = function()
+                return mcfg[show_key] ~= false
+            end
+            item.checkmark_callback = function()
+                mcfg[show_key] = mcfg[show_key] == false
+                save_home("reinit")
+            end
+        end
+        return item
     end
 
     local function build_featured_text_styles_items(mcfg)
@@ -773,41 +820,13 @@ function M.build(ctx)
                 return build_featured_text_styles_items(mcfg)
             end,
         }
-        items[#items + 1] = {
-            sub_title = _("Title"),
-            text_func = function()
-                return _("Title") .. ": " .. featured_text_style_summary(mcfg, "title")
-            end,
-            sub_item_table = build_featured_text_style_items(mcfg, "title", _("Title")),
-        }
-        items[#items + 1] = {
-            sub_title = _("Author"),
-            text_func = function()
-                return _("Author") .. ": " .. featured_text_style_summary(mcfg, "author")
-            end,
-            sub_item_table = build_featured_text_style_items(mcfg, "author", _("Author")),
-        }
-        items[#items + 1] = {
-            sub_title = _("Series"),
-            text_func = function()
-                return _("Series") .. ": " .. featured_text_style_summary(mcfg, "series")
-            end,
-            sub_item_table = build_featured_text_style_items(mcfg, "series", _("Series")),
-        }
-        items[#items + 1] = {
-            sub_title = _("Description"),
-            text_func = function()
-                return _("Description") .. ": " .. featured_text_style_summary(mcfg, "description")
-            end,
-            sub_item_table = build_featured_text_style_items(mcfg, "description", _("Description")),
-        }
-        items[#items + 1] = {
-            sub_title = _("Progress labels"),
-            text_func = function()
-                return _("Progress labels") .. ": " .. featured_text_style_summary(mcfg, "progress")
-            end,
-            sub_item_table = build_featured_text_style_items(mcfg, "progress", _("Progress labels")),
-        }
+        items[#items + 1] = featured_text_style_item(mcfg, "title", _("Title"))
+        items[#items + 1] = featured_text_style_item(mcfg, "author", _("Author"), "show_author")
+        items[#items + 1] = featured_text_style_item(mcfg, "series", _("Series"), "show_series")
+        items[#items + 1] = featured_text_style_item(
+            mcfg, "description", _("Description"), "show_description")
+        items[#items + 1] = featured_text_style_item(
+            mcfg, "progress", _("Progress labels"))
         return items
     end
 
@@ -855,21 +874,8 @@ function M.build(ctx)
         save_home("reinit")
     end
 
-    local function featured_status_bar_item(mcfg)
-        return {
-            text = _("Show top status bar"),
-            checked_func = function()
-                return mcfg.show_status_bar == true
-            end,
-            callback = function()
-                toggle_featured_status_bar(mcfg)
-            end,
-        }
-    end
-
     local function featured_status_bar_options(mcfg)
         return {
-            featured_status_bar_item(mcfg),
             {
                 text = _("Show bottom border"),
                 checked_func = function()
@@ -995,34 +1001,27 @@ function M.build(ctx)
                     end)
                 end,
             },
-            {
-                text = _("Show description"),
-                checked_func = function()
-                    return mcfg.show_description ~= false
-                end,
-                callback = function()
-                    mcfg.show_description = mcfg.show_description == false
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Wrap description text"),
-                checked_func = function()
-                    return mcfg.wrap_description_text == true
-                end,
-                callback = function()
-                    mcfg.wrap_description_text = mcfg.wrap_description_text ~= true
-                    save_home("reinit")
-                end,
-            },
             interactive_item(mcfg),
             {
                 text = _("Top status bar"),
+                checked_func = function()
+                    return mcfg.show_status_bar == true
+                end,
+                checkmark_callback = function()
+                    toggle_featured_status_bar(mcfg)
+                end,
                 sub_item_table = featured_status_bar_options(mcfg),
             },
             featured_text_styles_item(mcfg),
             {
                 text = _("Progress"),
+                checked_func = function()
+                    return mcfg.show_progress ~= false
+                end,
+                checkmark_callback = function()
+                    mcfg.show_progress = mcfg.show_progress == false
+                    save_home("reinit")
+                end,
                 sub_item_table = build_progress_meta_items(mcfg),
             },
         }
@@ -2282,18 +2281,14 @@ function M.build(ctx)
             end
             return dcfg.quotes.sources
         end
-        local function source_item(label, key, options)
-            local item = {
+        local function source_item(label, key)
+            return {
                 text = label,
                 keep_menu_open = true,
                 checked_func = function()
                     return quote_sources()[key] == true
                 end,
                 callback = function()
-                    if options and options.enabled_func
-                            and options.enabled_func() == false then
-                        return
-                    end
                     local sources = quote_sources()
                     sources[key] = sources[key] ~= true
                     if not sources.default and not sources.custom and not sources.annotations then
@@ -2302,38 +2297,68 @@ function M.build(ctx)
                     save_home("reinit")
                 end,
             }
-            if options then
-                item.enabled_func = options.enabled_func
-                item.help_text = options.help_text
-                item.dim = options.enabled_func and options.enabled_func() == false or nil
-            end
-            return item
         end
         local function quote_font_size()
             return dcfg.quotes.font_size or 12
         end
-        local custom_quotes_available = HomeQuotes.hasCustomQuotes()
-        if not custom_quotes_available then
-            local sources = quote_sources()
-            sources.custom = false
-            if not sources.default and not sources.annotations then
-                sources.default = true
+        local sources = quote_sources()
+        if type(dcfg.quotes.custom_files) ~= "table" then
+            if sources.custom == true then
+                dcfg.quotes.custom_files = { ["quotes.lua"] = true }
+            else
+                dcfg.quotes.custom_files = {}
             end
+        elseif sources.custom ~= true then
+            dcfg.quotes.custom_files = {}
+        end
+        local function custom_quote_files()
+            return dcfg.quotes.custom_files
+        end
+        local function has_selected_custom_file()
+            for filename, selected in pairs(custom_quote_files()) do
+                if filename and selected == true then return true end
+            end
+            return false
+        end
+        local function custom_quote_items()
+            local items = {}
+            for _i, filename in ipairs(HomeQuotes.listFiles(dcfg.quotes)) do
+                local quote_file = filename
+                items[#items + 1] = {
+                    text = quote_file,
+                    keep_menu_open = true,
+                    checked_func = function()
+                        return custom_quote_files()[quote_file] == true
+                    end,
+                    callback = function()
+                        local files = custom_quote_files()
+                        if files[quote_file] == true then
+                            files[quote_file] = nil
+                        else
+                            files[quote_file] = true
+                        end
+                        local selected = has_selected_custom_file()
+                        sources.custom = selected
+                        if not selected and not sources.default and not sources.annotations then
+                            sources.default = true
+                        end
+                        save_home("reinit")
+                    end,
+                }
+            end
+            return items
+        end
+        sources.custom = has_selected_custom_file()
+        if not sources.custom and not sources.default and not sources.annotations then
+            sources.default = true
         end
         local source_items = {
             source_item(_("Default quotes"), "default"),
-            source_item(_("Custom quotes"), "custom", {
-                enabled_func = HomeQuotes.hasCustomQuotes,
-                help_text = _("Add at least one quote to settings/ZenOS/quotes.lua to enable this source."),
-            }),
+            {
+                text = _("Custom quotes"),
+                sub_item_table_func = custom_quote_items,
+            },
         }
-        if not custom_quotes_available then
-            source_items[#source_items + 1] = {
-                text = _("quotes.lua is empty"),
-                enabled = false,
-                dim = true,
-            }
-        end
         source_items[#source_items + 1] =
             source_item(_("Annotations"), "annotations")
         local items = {

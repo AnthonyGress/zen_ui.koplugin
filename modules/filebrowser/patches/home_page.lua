@@ -570,8 +570,13 @@ end
 local function ensure_featured_module_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
     mcfg.order = normalize_order(mcfg.order)
+    if mcfg.show_author == nil then mcfg.show_author = true end
+    if mcfg.show_series == nil then mcfg.show_series = true end
     if mcfg.show_description == nil then mcfg.show_description = true end
+    if mcfg.show_progress == nil then mcfg.show_progress = true end
     if mcfg.wrap_description_text == nil then mcfg.wrap_description_text = false end
+    if mcfg.justify_description_text == nil then mcfg.justify_description_text = false end
+    if mcfg.format_description_html == nil then mcfg.format_description_html = false end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
     if mcfg.status_bar_show_bottom_border == nil then mcfg.status_bar_show_bottom_border = true end

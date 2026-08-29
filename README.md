@@ -32,6 +32,10 @@ ZenOS is built to be lightweight and efficient. Its dedicated renderer and intel
 
 Build a personal Home page for your e-reader with responsive widgets: date and time, featured book, reading stats, reading goals, book strip, and quotes. Arrange them within the screen's space budget, edit widgets directly from Home, or apply and save presets.
 
+The Quotes widget can combine built-in quotes, annotations, and any selection
+of custom quote files stored in `settings/ZenOS/quotes/`, while the existing
+`settings/ZenOS/quotes.lua` remains the primary custom file.
+
 The unified book strip can switch between recent books, favorites, To Be Read, authors, series, tags, collections, a folder, or a custom list. Optional strip controls can also launch actions, Controls, plugin menus, and KOReader menus. Featured books support recent, To Be Read, or a hand-picked title, with configurable metadata and progress labels.
 
 See the [Home guide](docs/home.md).

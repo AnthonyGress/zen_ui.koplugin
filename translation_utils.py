@@ -17,6 +17,7 @@ Flags:
 """
 
 import argparse
+import ast
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
@@ -82,35 +83,52 @@ def unescape_lua(s: str) -> str:
     )
 
 
-def extract_from_file(path: str) -> list[str]:
+def extract_from_file(path: str) -> list[tuple[str, int, str]]:
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
             src = f.read()
     except OSError:
         return []
 
-    found = []
+    matches = []
     for pat in ALL_PATTERNS:
         for m in pat.finditer(src):
-            raw = m.group(1)
-            found.append(unescape_lua(raw))
+            matches.append((m.start(), m.end(), unescape_lua(m.group(1))))
+
+    found = []
+    lines = src.splitlines()
+    line = 1
+    cursor = 0
+    for start, end, msgid in sorted(matches):
+        line += src.count("\n", cursor, start)
+        end_line = line + src.count("\n", start, end)
+        context = " ".join(
+            part.strip()
+            for part in lines[max(0, line - 2):min(len(lines), end_line + 1)]
+            if part.strip()
+        )
+        context = re.sub(r"\s+", " ", context)
+        if len(context) > 240:
+            context = context[:237].rstrip() + "..."
+        found.append((msgid, line, context))
+        cursor = start
     return found
 
 
-def collect_lua_strings() -> dict[str, list[str]]:
-    """Return {msgid: [file, ...]} for every translatable string in all Lua files."""
-    result: dict[str, list[str]] = {}
+def collect_lua_strings() -> dict[str, list[tuple[str, int, str]]]:
+    """Return source locations and nearby code for every translatable string."""
+    result: dict[str, list[tuple[str, int, str]]] = {}
 
     for root, dirs, files in os.walk(SCRIPT_DIR):
         # Prune excluded directories in-place
-        dirs[:] = [d for d in dirs if d not in LUA_EXCLUDE_DIRS]
-        for fname in files:
+        dirs[:] = sorted(d for d in dirs if d not in LUA_EXCLUDE_DIRS)
+        for fname in sorted(files):
             if not fname.endswith(".lua"):
                 continue
             fpath = os.path.join(root, fname)
             rel = os.path.relpath(fpath, SCRIPT_DIR)
-            for s in extract_from_file(fpath):
-                result.setdefault(s, []).append(rel)
+            for msgid, line, context in extract_from_file(fpath):
+                result.setdefault(msgid, []).append((rel, line, context))
 
     return result
 
@@ -123,45 +141,77 @@ def po_header(po_path: str) -> str:
     """Return the raw header block (everything before the first non-empty msgid)."""
     with open(po_path, encoding="utf-8") as f:
         content = f.read()
-    # Header ends just before the first msgid that isn't the empty-string header
-    # i.e. before the first `\nmsgid "` that is NOT `msgid ""`
-    m = re.search(r'\nmsgid "(?!"\n)', content)
-    return content[: m.start() + 1] if m else content
+    return re.split(r"\n\n+", content.rstrip("\n"), maxsplit=1)[0]
+
+
+def parse_po_text(content: str) -> dict[str, str]:
+    """Return {msgid: msgstr} from single- or multiline PO entries."""
+    entries: dict[str, str] = {}
+    msgid = msgstr = None
+    field = None
+
+    def flush() -> None:
+        nonlocal msgid, msgstr, field
+        if msgid and msgstr is not None:
+            entries[msgid] = msgstr
+        msgid = msgstr = None
+        field = None
+
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line:
+            flush()
+        elif line.startswith("msgid "):
+            if msgid is not None:
+                flush()
+            msgid = ast.literal_eval(line[6:].strip())
+            field = "msgid"
+        elif line.startswith("msgstr "):
+            msgstr = ast.literal_eval(line[7:].strip())
+            field = "msgstr"
+        elif line.startswith('"') and field:
+            value = ast.literal_eval(line)
+            if field == "msgid":
+                msgid += value
+            else:
+                msgstr += value
+    flush()
+    return entries
 
 
 def parse_po(po_path: str) -> dict[str, str]:
     """Return {msgid: msgstr} for all entries in a .po file."""
-    entries: dict[str, str] = {}
     try:
         with open(po_path, encoding="utf-8") as f:
-            content = f.read()
+            return parse_po_text(f.read())
     except OSError:
-        return entries
-
-    # Split on blank lines to get blocks
-    blocks = re.split(r"\n\n+", content.strip())
-    for block in blocks:
-        mid_m = re.search(r'^msgid "((?:[^"\\]|\\.)*)"', block, re.MULTILINE)
-        mstr_m = re.search(r'^msgstr "((?:[^"\\]|\\.)*)"', block, re.MULTILINE)
-        if mid_m and mstr_m:
-            msgid = mid_m.group(1).replace("\\n", "\n")
-            msgstr = mstr_m.group(1).replace("\\n", "\n")
-            if msgid:  # skip the header entry
-                entries[msgid] = msgstr
-    return entries
+        return {}
 
 
 def msgid_to_po_line(s: str) -> str:
     """Encode a string as a .po-compatible quoted value."""
-    escaped = s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    escaped = (s.replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("\n", "\\n")
+                .replace("\t", "\\t")
+                .replace("\r", "\\r"))
     return escaped
 
 
-def format_entry(msgid: str, msgstr: str = "") -> str:
-    return f'msgid "{msgid_to_po_line(msgid)}"\nmsgstr "{msgid_to_po_line(msgstr)}"\n'
+def format_entry(msgid: str, msgstr: str = "", sources: list[tuple[str, int, str]] | None = None) -> str:
+    lines = []
+    if sources:
+        lines.append(f"#. Context: {sources[0][2]}")
+        refs = dict.fromkeys(f"{os.path.basename(path)}:{line}" for path, line, _context in sources)
+        lines.append("#: " + " ".join(refs))
+    lines.extend((
+        f'msgid "{msgid_to_po_line(msgid)}"',
+        f'msgstr "{msgid_to_po_line(msgstr)}"',
+    ))
+    return "\n".join(lines) + "\n"
 
 
-def rewrite_po(po_path: str, existing: dict[str, str], lua_strings: set, to_add: list[str], remove_dead: bool, alphabetize: bool = False) -> tuple[int, int]:
+def rewrite_po(po_path: str, existing: dict[str, str], lua_strings: dict[str, list[tuple[str, int, str]]], to_add: list[str], remove_dead: bool, alphabetize: bool = False) -> tuple[int, int]:
     """Rewrite a .po file, removing dead entries and/or appending new ones. Returns (removed, added)."""
     header = po_header(po_path)
     parts = [header.rstrip("\n")]
@@ -179,7 +229,7 @@ def rewrite_po(po_path: str, existing: dict[str, str], lua_strings: set, to_add:
 
     entry_iter = sorted(kept.items(), key=lambda kv: kv[0].lower()) if alphabetize else list(kept.items())
     for msgid, msgstr in entry_iter:
-        parts.append(format_entry(msgid, msgstr).rstrip("\n"))
+        parts.append(format_entry(msgid, msgstr, lua_strings.get(msgid)).rstrip("\n"))
 
     added = len(to_add)
 
@@ -189,7 +239,7 @@ def rewrite_po(po_path: str, existing: dict[str, str], lua_strings: set, to_add:
     return removed, added
 
 
-def write_updated_po(po_path: str, existing: dict[str, str], to_add: list[str]) -> None:
+def write_updated_po(po_path: str, existing: dict[str, str], to_add: list[str], lua_strings: dict[str, list[tuple[str, int, str]]]) -> None:
     """Append missing msgids (with empty msgstr) to a .po file."""
     with open(po_path, encoding="utf-8", errors="replace") as f:
         content = f.read()
@@ -199,7 +249,7 @@ def write_updated_po(po_path: str, existing: dict[str, str], to_add: list[str]) 
 
     additions = []
     for msgid in sorted(to_add):
-        additions.append(format_entry(msgid))
+        additions.append(format_entry(msgid, sources=lua_strings.get(msgid)))
 
     with open(po_path, "w", encoding="utf-8") as f:
         f.write(content + "\n".join(additions))
@@ -246,7 +296,7 @@ def apply_translations(locale: str, translations: dict[str, str]) -> int:
     existing = parse_po(po_path)
     existing.update({k: v for k, v in translations.items() if v})
     lua_strings = collect_lua_strings()
-    rewrite_po(po_path, existing, set(lua_strings.keys()), [], remove_dead=False, alphabetize=True)
+    rewrite_po(po_path, existing, lua_strings, [], remove_dead=False, alphabetize=True)
     return sum(1 for v in translations.values() if v)
 
 
@@ -324,16 +374,17 @@ def translate_strings(locale: str, msgids: list[str]) -> dict[str, str]:
     return translated
 
 
-def sync_catalogs(po_files: list[str], lua_strings: set[str]) -> None:
+def sync_catalogs(po_files: list[str], lua_strings: dict[str, list[tuple[str, int, str]]]) -> None:
     """Fully synchronize catalogs, translating blanks before writing any files."""
+    msgids = set(lua_strings)
     plans = []
     for po_file in po_files:
         locale = po_file[:-3]
         po_path = os.path.join(LOCALES_DIR, po_file)
         existing = parse_po(po_path)
-        missing = sorted(lua_strings - set(existing))
-        dead = sorted(set(existing) - lua_strings)
-        synced = {msgid: existing.get(msgid, "") for msgid in lua_strings}
+        missing = sorted(msgids - set(existing))
+        dead = sorted(set(existing) - msgids)
+        synced = {msgid: existing.get(msgid, "") for msgid in msgids}
         untranslated = sorted(msgid for msgid, msgstr in synced.items() if not msgstr)
 
         print(
@@ -409,7 +460,7 @@ def main() -> None:
 
     if args.sync:
         try:
-            sync_catalogs(po_files, set(lua_strings))
+            sync_catalogs(po_files, lua_strings)
         except RuntimeError as exc:
             print(f"Error: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -430,8 +481,8 @@ def main() -> None:
             print("  MISSING (in Lua, not in .po):")
             for s in missing:
                 preview = repr(s)
-                files = lua_strings[s]
-                print(f"    {preview}  <- {', '.join(files[:2])}{'...' if len(files) > 2 else ''}")
+                locations = [f"{path}:{line}" for path, line, _context in lua_strings[s]]
+                print(f"    {preview}  <- {', '.join(locations[:2])}{'...' if len(locations) > 2 else ''}")
 
         if dead:
             print("  DEAD (in .po, not in Lua):")
@@ -441,7 +492,7 @@ def main() -> None:
         need_write = (args.update_po and missing) or args.remove_dead or args.alphabetize
         if need_write:
             removed, added = rewrite_po(
-                po_path, existing, set(lua_strings.keys()),
+                po_path, existing, lua_strings,
                 missing if args.update_po else [],
                 args.remove_dead,
                 args.alphabetize,
