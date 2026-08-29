@@ -24,7 +24,7 @@ local Geom           = require("ui/geometry")
 local IconWidget     = require("ui/widget/iconwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
-local DataStorage    = require("datastorage")
+local lfs            = require("libs/libkoreader-lfs")
 local Screen         = Device.screen
 local pager          = require("common/ui/zen_pager")
 local LibraryFont    = require("modules/filebrowser/patches/library_font")
@@ -34,7 +34,7 @@ local utils          = require("common/utils")
 local _              = require("gettext")
 
 local function resolve_stock_icon(name)
-    return utils.resolveLocalIcon(DataStorage:getDataDir() .. "/resources/icons/mdlight/", name)
+    return utils.resolveLocalIcon(lfs.currentdir() .. "/resources/icons/mdlight/", name)
 end
 
 local BACK_ICON_PATH = resolve_stock_icon("chevron.left")

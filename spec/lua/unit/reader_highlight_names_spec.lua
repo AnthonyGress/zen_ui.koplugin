@@ -61,4 +61,17 @@ describe("reader highlight names", function()
 
         assert.are.equal("Funny", ReaderHighlight.highlight_colors[1][1])
     end)
+
+    it("keeps legacy color lists unchanged", function()
+        local color = require("ffi").new("struct { uint8_t r; uint8_t g; uint8_t b; uint8_t a; }")
+        local ReaderHighlight = {
+            highlight_colors = { { "Yellow", "yellow" } },
+            getHighlightColorList = function() return { color } end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+
+        require("modules/reader/patches/highlight_names")()
+
+        assert.are.equal(color, ReaderHighlight:getHighlightColorList()[1])
+    end)
 end)

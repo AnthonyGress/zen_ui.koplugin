@@ -1688,13 +1688,15 @@ describe("home strip widget", function()
         assert.is_not_nil(captured_cover)
     end)
 
-    it("replaces only the swiped strip with its next books", function()
+    it("replaces and refreshes only the visually shifted strip", function()
         touch_device = true
         local first = { path = "/library/first.epub", title = "First" }
         local second = { path = "/library/second.epub", title = "Second" }
         local show_second = false
         local shifted = {}
         local refreshed = 0
+        local content_bounds
+        local dirty
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
@@ -1712,13 +1714,22 @@ describe("home strip widget", function()
                 refresh()
                 return true
             end,
-            refreshStrip = function() refreshed = refreshed + 1 end,
+            setContentBounds = function(bounds) content_bounds = bounds end,
+            refreshStrip = function(dimen)
+                dirty = dimen
+                refreshed = refreshed + 1
+            end,
         })
 
-        assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 10, y = 10 }, direction = "west" }))
+        widget.dimen.x, widget.dimen.y = 10, 511
+        content_bounds.set_shift(-11)
+        assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 20, y = 520 }, direction = "west" }))
         assert.are.same({ { kind = "recent" }, 4, "default", "next", "strip", false }, shifted)
         assert.are.same({ first, second }, cover_books)
         assert.are.equal(1, refreshed)
+        assert.are.same({ 10, 500, 600, 171 }, {
+            dirty.x, dirty.y, dirty.w, dirty.h,
+        })
     end)
 
     it("hydrates cold visible covers after paint with a strip-only refresh", function()

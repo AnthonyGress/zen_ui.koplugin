@@ -4,16 +4,16 @@
 
 local function apply_bookmarks()
     local ReaderBookmark = require("apps/reader/modules/readerbookmark")
-    local DataStorage = require("datastorage")
     local Device = require("device")
     local LibraryFont = require("modules/filebrowser/patches/library_font")
     local ReaderFont = require("common/reader_font")
     local utils = require("common/utils")
+    local lfs = require("libs/libkoreader-lfs")
     local unpack = table.unpack or unpack
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local _plugin_root = require("common/plugin_root")
     local _icons_dir = _plugin_root and _plugin_root .. "/icons/"
-    local _stock_icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
+    local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
     local function resolve_stock_icon(name)
         return utils.resolveLocalIcon(_stock_icons_dir, name)

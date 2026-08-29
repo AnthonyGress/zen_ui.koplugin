@@ -45,7 +45,9 @@ local function apply(plugin)
         ReaderHighlight.getHighlightColorList = function(self, ...)
             local colors = orig_get_list(self, ...)
             for _i, color in ipairs(colors or {}) do
-                color[1] = configured_name(ReaderHighlight, color[2]) or color[1]
+                if type(color) == "table" then
+                    color[1] = configured_name(ReaderHighlight, color[2]) or color[1]
+                end
             end
             return colors
         end
