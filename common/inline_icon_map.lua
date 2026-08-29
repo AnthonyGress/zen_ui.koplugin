@@ -54,6 +54,7 @@ return {
     filename     = "\u{F0224}",
     authors      = "\u{F0013}",  -- mdi-account
     series       = "\u{F0436}",  -- mdi-library-books
+    language     = "\u{F05CA}",  -- mdi-translate
     history      = "\u{F02DA}",  -- mdi-history
     keywords     = "\u{F12F7}",  -- mdi-tag-multiple
 
