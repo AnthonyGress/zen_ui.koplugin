@@ -15,7 +15,8 @@ local M = {}
 local _authors_menu = nil
 local _series_menu  = nil
 local _languages_menu = nil
-local _tbr_menu     = nil
+local _tbr_menu
+local _already_read_menu     = nil
 local _tags_menu    = nil
 -- Detail view menus layered on top of the group menu
 local _detail_menus = {}
@@ -26,6 +27,7 @@ local function get_root_menu(tab_id)
     if tab_id == "languages" then return _languages_menu end
     if tab_id == "tags" then return _tags_menu end
     if tab_id == "to_be_read" then return _tbr_menu end
+    if tab_id == "already_read" then return _already_read_menu end
 end
 
 local function clear_root_menu(tab_id, menu)
@@ -39,6 +41,8 @@ local function clear_root_menu(tab_id, menu)
         _tags_menu = nil
     elseif tab_id == "to_be_read" and _tbr_menu == menu then
         _tbr_menu = nil
+    elseif tab_id == "already_read" and _already_read_menu == menu then
+        _already_read_menu = nil
     end
 end
 
@@ -1222,22 +1226,31 @@ function M.showSourceContextMenu(tab_id, menu, options)
     end
 
     local _ = require("gettext")
-    if tab_id == "to_be_read" then
+    if tab_id == "to_be_read" or tab_id == "already_read" then
         local files = options.files
         if type(files) ~= "table" then
-            local ok_index, tbr_index = pcall(require, "common/tbr_index")
-            if not ok_index or type(tbr_index.getAll) ~= "function" then return false end
-            files = tbr_index.getAll({
-                include_new = book_status.includeNewInTBREnabled(),
-                collate = get_detail_collate(tab_id, tab_id, "title"),
-                reverse = get_detail_reverse(tab_id, tab_id, false),
-            })
+            if tab_id == "to_be_read" then
+                local ok_index, tbr_index = pcall(require, "common/tbr_index")
+                if not ok_index or type(tbr_index.getAll) ~= "function" then return false end
+                files = tbr_index.getAll({
+                    include_new = book_status.includeNewInTBREnabled(),
+                    collate = get_detail_collate(tab_id, tab_id, "title"),
+                    reverse = get_detail_reverse(tab_id, tab_id, false),
+                })
+            else
+                local ok_index, read_index = pcall(require, "common/read_index")
+                if not ok_index or type(read_index.getAll) ~= "function" then return false end
+                files = read_index.getAll({
+                    collate = get_detail_collate(tab_id, tab_id, "title"),
+                    reverse = get_detail_reverse(tab_id, tab_id, false),
+                })
+            end
             files = apply_status_filter(files)
         end
         local count = tonumber(options.item_count) or #files
         fm.file_chooser:showFileDialog({
             _zen_group_files = files,
-            _zen_group_name = _("To Be Read"),
+            _zen_group_name = tab_id == "to_be_read" and _("To Be Read") or _("Already Read"),
             _zen_group_subtitle = count == 1 and _("1 book")
                 or (tostring(count) .. " " .. _("books")),
             _zen_sort_cb = options.sort_cb or function()
@@ -1713,6 +1726,220 @@ function M.showTBRView(injectNavbar)
     return menu, true
 end
 
+function M.showAlreadyReadView(injectNavbar)
+    local _          = require("gettext")
+    local UIManager  = require("ui/uimanager")
+    if _already_read_menu then
+        if UIManager:isWidgetShown(_already_read_menu) then return _already_read_menu, false end
+        _already_read_menu = nil
+    end
+    refresh_shared_state()
+
+    local tab_id     = "already_read"
+    local SORT_GROUP = "already_read"
+    local group_name = _("To Be Read")
+
+    local cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
+    local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
+
+    local ok_index, read_index = pcall(require, "common/read_index")
+    if not ok_index or type(read_index.getAll) ~= "function" then return end
+
+    local function loadFiles()
+        local loaded = read_index.getAll({
+                        collate = cur_collate,
+            reverse = cur_reverse,
+        })
+        loaded = sortDetailFiles(loaded, cur_collate, cur_reverse)
+        return apply_status_filter(loaded)
+    end
+
+    local files = loadFiles()
+    local menu
+    local buildItems
+
+    local function refreshCollectionView()
+        cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
+        cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
+        read_index.collectionChanged(read_index.collectionName())
+        files = loadFiles()
+        if menu then
+            local refreshed = buildItems(files)
+            if false and should_show_up_folder() then
+                table.insert(refreshed, 1,
+                    { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+            end
+            menu.item_table = refreshed
+            menu:updateItems()
+        end
+    end
+
+    buildItems = function(flist)
+        local lfs_mod  = require("libs/libkoreader-lfs")
+        local util_mod = require("util")
+        local items = {}
+        for _i, fpath in ipairs(flist) do
+            local fname   = fpath:match("([^/]+)$") or fpath
+            local display = fname:gsub("%.[^%.]+$", "")
+            local attr = lfs_mod.attributes(fpath)
+            table.insert(items, {
+                text      = display,
+                path      = fpath,
+                filepath  = fpath,
+                is_file   = true,
+                dim       = is_file_selected(fpath),
+                mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
+                _zen_collection_name = nil -- 
+                    and read_index.collectionName() or nil,
+                _zen_collection_refresh = refreshCollectionView,
+            })
+        end
+        if #items == 0 then
+            table.insert(items, {
+                text                   = group_empty_message(tab_id), -- already_read empty msg,
+                dim                    = true,
+                callback               = function() end,
+                _zen_empty_placeholder = true,
+            })
+        end
+        return items
+    end
+
+    local items = buildItems(files)
+    if false and should_show_up_folder() then
+        table.insert(items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+    end
+
+    menu = StandalonePage.create_menu{
+        name = "already_read",
+        title = group_name,
+        item_table = items,
+        onMenuSelect = function(menu_self, item)
+            if item.is_go_up then
+                if menu_self.close_callback then menu_self.close_callback()
+                else UIManager:close(menu_self) end
+                return
+            end
+            if item.path then
+                if toggle_file_selection(menu_self, item) then return end
+                local fm = get_file_manager()
+                local fmu = require("apps/filemanager/filemanagerutil")
+                if fmu.openFile then
+                    fmu.openFile(fm, item.path)
+                elseif fm then
+                    fm:openFile(item.path)
+                end
+            end
+        end,
+        onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
+            if not item.path then return end
+            local fm = get_file_manager()
+            if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
+                show_file_dialog_with_refresh(fm.file_chooser, menu_self, {
+                    path    = item.path,
+                    is_file = true,
+                    text    = item.text,
+                    _zen_select_cb = function()
+                        return toggle_file_selection(menu_self, item)
+                    end,
+                    _zen_collection_name = item._zen_collection_name,
+                    _zen_collection_refresh = item._zen_collection_refresh,
+                })
+            end
+        end,
+        updateItems = function() end,
+    }
+    StandalonePage.prepare_shell(menu)
+
+    -- Tag TBR as a library menu for Zen's renderer and preload pipeline.
+    menu._zen_tab_id = tab_id
+    menu._zen_tbr_refresh = refreshCollectionView
+
+    local mode_type = setup_display_mode(menu, true, tab_id)
+    if mode_type == "classic" or not mode_type then
+        local Menu_class = require("ui/widget/menu")
+        menu.updateItems = Menu_class.updateItems
+    end
+
+    menu.close_callback = function()
+        UIManager:close(menu)
+        clear_root_menu(tab_id, menu)
+    end
+    menu._zen_library_bg_reopen = function()
+        return reopen_root_view(tab_id, injectNavbar)
+    end
+    local orig_tbr_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_tbr_on_close_widget then
+            return orig_tbr_on_close_widget(self, ...)
+        end
+    end
+
+    clean_nav(menu, group_name)
+
+    if injectNavbar then
+        injectNavbar(menu, tab_id)
+    end
+
+    _already_read_menu = menu
+
+    local Device_tbr = require("device")
+    if Device_tbr:isTouchDevice() then
+        local GestureRange_tbr = require("ui/gesturerange")
+        local Geom_tbr         = require("ui/geometry")
+        if not menu.ges_events then
+            menu.ges_events = {}
+        end
+        menu.ges_events.ZenAlreadyReadBlankHold = {
+            GestureRange_tbr:new{
+                ges   = "hold",
+                range = Geom_tbr:new{
+                    x = 0, y = 0,
+                    w = Device_tbr.screen:getWidth(),
+                    h = Device_tbr.screen:getHeight(),
+                },
+            },
+        }
+        function menu:onZenAlreadyReadBlankHold(arg, ges)
+            return M.showSourceContextMenu(tab_id, self, {
+                files = files,
+                item_count = self.item_table and #self.item_table or 0,
+                sort_cb = function()
+                    showDetailSortDialog(SORT_GROUP, tab_id, self, files,
+                        function(collate, reverse)
+                            cur_collate, cur_reverse = collate, reverse
+                            files = loadFiles()
+                            return files
+                        end)
+                end,
+            })
+        end
+    end
+
+    UIManager:show(menu)
+    UIManager:nextTick(function()
+        -- Restore page if returning from reader
+        local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        if state and state.tab == "already_read" and state.page and state.page > 1 then
+            menu.page = state.page
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+        end
+        menu:updateItems()
+        local createSR2  = _zen_shared and _zen_shared.createStatusRow
+        local repaintTB2 = _zen_shared and _zen_shared.repaintTitleBar
+        local tb2 = menu.title_bar
+        if tb2 and createSR2 and tb2.title_group and #tb2.title_group >= 2 then
+            local FileManager2 = require("apps/filemanager/filemanager")
+            tb2.title_group[2] = createSR2(nil, FileManager2.instance)
+            tb2.title_group:resetLayout()
+            if repaintTB2 then repaintTB2(tb2) end
+        end
+    end)
+    return menu, true
+end
+
 function M.refreshTBRView()
     local UIManager = require("ui/uimanager")
     if not (_tbr_menu and UIManager:isWidgetShown(_tbr_menu)
@@ -1764,6 +1991,8 @@ function M.getActivePage(tab_id)
         return _languages_menu.page
     elseif tab_id == "to_be_read" and _tbr_menu then
         return _tbr_menu.page
+    elseif tab_id == "already_read" and _already_read_menu then
+        return _already_read_menu.page
     elseif tab_id == "tags" and _tags_menu then
         return _tags_menu.page
     end
@@ -1780,6 +2009,7 @@ function M.closeAll()
     if _series_menu  then UIManager2:close(_series_menu);  _series_menu  = nil end
     if _languages_menu then UIManager2:close(_languages_menu); _languages_menu = nil end
     if _tbr_menu     then UIManager2:close(_tbr_menu);     _tbr_menu     = nil end
+    if _already_read_menu then UIManager2:close(_already_read_menu); _already_read_menu = nil end
     if _tags_menu    then UIManager2:close(_tags_menu);    _tags_menu    = nil end
 end
 
