@@ -1213,6 +1213,24 @@ function M.build_strip(ctx, source_key)
     local prewarm_direction = 1
     local swap_sequence = 0
 
+    local function repaint_strip()
+        if not ctx.refreshStrip then
+            UIManager:setDirty(ctx.menu, "ui")
+            return
+        end
+        local dimen = repaint_widget.dimen
+        local shift = tonumber(visual_shift) or 0
+        if dimen and shift ~= 0 then
+            dimen = Geom:new{
+                x = dimen.x,
+                y = dimen.y + math.min(0, shift),
+                w = dimen.w,
+                h = dimen.h + math.abs(shift),
+            }
+        end
+        ctx.refreshStrip(dimen)
+    end
+
     local function new_entry(cached_frame, targets, jobs, books, plans, controls_top)
         return {
             frame = cached_frame,
@@ -1265,13 +1283,7 @@ function M.build_strip(ctx, source_key)
         page_cache[page_delta] = replacement
         if page_delta == 0 then
             activate_entry(replacement)
-            if repaint then
-                if ctx.refreshStrip then
-                    ctx.refreshStrip(repaint_widget)
-                else
-                    UIManager:setDirty(ctx.menu, "ui")
-                end
-            end
+            if repaint then repaint_strip() end
         end
         if previous and previous ~= replacement then free_entry(previous) end
     end
@@ -1545,11 +1557,7 @@ function M.build_strip(ctx, source_key)
             "sequence=", swap_sequence,
             "direction=", direction,
             "cache_hit=", cache_hit and 1 or 0)
-        if ctx.refreshStrip then
-            ctx.refreshStrip(repaint_widget)
-        else
-            UIManager:setDirty(ctx.menu, "ui")
-        end
+        repaint_strip()
         prewarm_direction = direction == "next" and 1 or -1
         schedule_visible_hydration(HYDRATE_DELAY_S)
         schedule_prewarm(PRELOAD_DELAY_S)

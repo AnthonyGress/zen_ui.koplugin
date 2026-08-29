@@ -311,7 +311,9 @@ return {
         "Fix: deduplicate multiple similar languages i.e en and en-us",
         "Fix: Variable Book strip control width",
      },
-     ["3.3.0"] = {
-        "Fix: allow cancelling ZenPM download and time out after one minute"
+     ["3.2.2"] = {
+        "Fix: allow cancelling ZenPM download and time out after one minute",
+        "Fix reader highlight crash",
+        "Fix some icons not rendering"
      }
 }

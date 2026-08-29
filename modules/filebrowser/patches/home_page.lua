@@ -2849,7 +2849,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         end
     end
 
-    local function refresh_strip(swipe)
+    local function refresh_strip(dimen)
         sort_home_focus_targets(menu)
         local restore_i = find_home_focus_index(menu, menu._zen_home_focus_key)
         if restore_i then
@@ -2859,7 +2859,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             menu._zen_home_focus_id = nil
         end
         request_home_repaint(menu, function()
-            return "ui", swipe and swipe.dimen, menu.dithered
+            return "ui", dimen, menu.dithered
         end)
     end
 
