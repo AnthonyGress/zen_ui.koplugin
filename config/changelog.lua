@@ -317,6 +317,7 @@ return {
         "Fix some icons not rendering"
      },
      ["3.3.0"] = {
+        "Add native metadata editor and Hardcover autofill",
         "Add support for multiple quote files",
         "Add context to translations",
         "Add language in Zen Settings > About",

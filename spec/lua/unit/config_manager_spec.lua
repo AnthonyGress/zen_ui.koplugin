@@ -43,6 +43,9 @@ describe("config manager folder-path migration", function()
             end,
             migrateStores = function() return false end,
         })
+        ZenSpec.replace("config/hardcover_token", {
+            ensureFile = function() return false end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
             DEFAULT_PRESET_NAME = "Zen Default",
             BOOKSHELF_PRESET_NAME = "Bookshelf",
@@ -72,6 +75,8 @@ describe("config manager folder-path migration", function()
         assert.are.equal(18, config.page_browser.bookmarks_font_size)
         assert.are.same({}, config.folder_cover_paths)
         assert.is_true(config.search.substring)
+        assert.is_true(config.metadata.hardcover_auto_match)
+        assert.is_false(config.metadata.epub_backup)
         assert.is_false(config._meta.quickstart_shown_for_version)
     end)
 

@@ -185,14 +185,15 @@ function ZenSettingsTitleBar:init()
     local close_hitbox_inset = Screen:scaleBySize(4)
     local close_hitbox_left_inset = Screen:scaleBySize(4)
     local close_hitbox_bottom_inset = Screen:scaleBySize(12)
-    local title_leading_padding = IconItem.getSettingsIconGap()
+    local title_leading_padding = TitleStyle.TITLE_LEADING_PADDING
+        or IconItem.getSettingsIconGap()
     self.title_leading_padding = title_leading_padding
     local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
     local root_icon_inset = button_size - root_icon_size
     local root_icon_inset_start = math.floor(root_icon_inset / 2)
     local root_icon_inset_end = root_icon_inset - root_icon_inset_start
-    local leading_width = IconItem.SETTINGS_ICON_WIDTH
-    local left_padding = IconItem.getSettingsLeftPadding()
+    local leading_width = TitleStyle.LEADING_WIDTH or IconItem.SETTINGS_ICON_WIDTH
+    local left_padding = TitleStyle.LEFT_PADDING or IconItem.getSettingsLeftPadding()
     local right_padding = TitleStyle.RIGHT_PADDING
     local back_width = leading_width
     local show_search = self.search_expanded == true and self.search_visible ~= false
@@ -207,10 +208,10 @@ function ZenSettingsTitleBar:init()
                 text = self.action.text,
                 bordersize = 0,
                 radius = 0,
-                padding_h = Size.padding.default,
+                padding_h = TitleStyle.ACTION_PADDING_H or Size.padding.default,
                 padding_v = Size.padding.small,
                 text_font_face = "smallinfofont",
-                text_font_size = 18,
+                text_font_size = TitleStyle.ACTION_FONT_SIZE or 18,
                 text_font_bold = true,
                 allow_flash = false,
                 show_parent = self.show_parent,
@@ -232,7 +233,7 @@ function ZenSettingsTitleBar:init()
     end
     local trailing_controls = 1 + (self.action and 1 or 0)
         + (show_search_button and 1 or 0)
-    local trailing_gap = Screen:scaleBySize(4)
+    local trailing_gap = TitleStyle.TRAILING_GAP or Screen:scaleBySize(4)
     local trailing_width = button_size + action_width
         + (show_search_button and button_size or 0)
         + (trailing_controls - 1) * trailing_gap

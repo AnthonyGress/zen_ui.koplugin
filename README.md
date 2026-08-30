@@ -238,6 +238,11 @@ ZenOS is original work, but it wouldn't exist without the broader KOReader commu
 - **[sebdelsol/KOReader.patches](https://github.com/sebdelsol/KOReader.patches)** — Patches and UI techniques that informed several of ZenOS's features.
 - **[doctorhetfield-cmd/simpleui.koplugin](https://github.com/doctorhetfield-cmd/simpleui.koplugin)** — A fellow KOReader UI plugin that served as an inspiration as well as a model for how to apply language translations throughout the plugin.
 - **[kristianpennacchia/zzz-readermenuredesign.koplugin](https://github.com/kristianpennacchia/zzz-readermenuredesign.koplugin)** — Inspiration for the reader search menu redesign
+- **[rameezk/rebind.koplugin](https://github.com/rameezk/rebind.koplugin)** — The EPUB metadata mutation code is adapted from Rebind under the MIT License.
+- **[Phrogz/SLAXML](https://github.com/Phrogz/SLAXML)** — ZenOS vendors SLAXML's parser and DOM serializer under the MIT License.
+- **[certifi](https://github.com/certifi/python-certifi)** — The bundled Mozilla CA certificate data is distributed under the Mozilla Public License 2.0.
+
+The complete copyright and license texts for these embedded metadata components are in [modules/filebrowser/metadata/LICENSES.md](modules/filebrowser/metadata/LICENSES.md).
 
 Thank you to everyone who published their KOReader work openly.
 
@@ -259,6 +264,8 @@ Feel free to join the [Discord Community](https://discord.gg/Tv2PhrCPQ8) if you 
 ## Security
 
 See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
+
+ZenOS creates an empty `settings/ZenOS/hardcover_token.txt` placeholder for the optional Hardcover API token. The file contains only the token and can be edited directly.
 
 ## License
 

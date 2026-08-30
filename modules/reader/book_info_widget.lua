@@ -11,6 +11,7 @@ local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
 local BookProgress = require("common/ui/book_progress")
 local TruncatedTextMessage = require("common/ui/truncated_text_message")
+local ZenButton = require("common/ui/zen_button")
 local TitleStyle = require("common/ui/zen_title_style")
 local utils = require("common/utils")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
@@ -108,13 +109,17 @@ function BookInfoWidget:init()
     if self.edit_callback then
         self._edit_widget = TextWidget:new{
             text = icons.edit .. "  " .. _("Edit"),
-            face = Font:getFace("smallinfofont", TitleStyle.ICON_BASE_SIZE),
+            face = Font:getFace("cfont", 22),
+            bold = true,
             fgcolor = Blitbuffer.COLOR_BLACK,
             padding = 0,
         }
         local edit_size = self._edit_widget:getSize()
-        self._L.edit_w = edit_size.w + 2 * TitleStyle.BUTTON_PADDING
-        self._L.edit_close_gap = Device.screen:scaleBySize(12)
+        self._L.edit_padding = Device.screen:scaleBySize(10)
+        self._L.edit_h = Device.screen:scaleBySize(32)
+        self._L.edit_w = edit_size.w + 2 * self._L.edit_padding
+        self._L.edit_close_gap = TitleStyle.TRAILING_GAP
+            or Device.screen:scaleBySize(4)
         self._L.edit_x = self._L.close_all_x
             - self._L.edit_close_gap - self._L.edit_w
     end
@@ -422,18 +427,19 @@ function BookInfoWidget:paintTo(bb, x, y)
             + math.floor((TitleStyle.ROW_HEIGHT - back_size.h) / 2))
 
     if self._edit_widget then
-        local edit_size = self._edit_widget:getSize()
-        local edit_x = x + L.edit_x + math.floor((L.edit_w - edit_size.w) / 2)
         local edit_y = y + TitleStyle.VERTICAL_PADDING
-            + math.floor((TitleStyle.ROW_HEIGHT - edit_size.h) / 2)
+            + math.floor((TitleStyle.ROW_HEIGHT - L.edit_h) / 2)
         local edit_focused = self._zen_focus_enabled and self._zen_focus_area == "edit"
-        self._edit_widget.fgcolor = edit_focused
-            and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+        local max_text_width = L.edit_w - 2 * L.edit_padding
         if edit_focused then
-            bb:paintRect(x + L.edit_x, y + TitleStyle.VERTICAL_PADDING,
-                L.edit_w, TitleStyle.ROW_HEIGHT, Blitbuffer.COLOR_BLACK)
+            ZenButton.paintFilled(bb, x + L.edit_x, edit_y, L.edit_w, L.edit_h,
+                self._edit_widget.text, 22, Device.screen:scaleBySize(8),
+                max_text_width)
+        else
+            ZenButton.paintOutlined(bb, x + L.edit_x, edit_y, L.edit_w, L.edit_h,
+                self._edit_widget.text, 22, Device.screen:scaleBySize(8),
+                Device.screen:scaleBySize(1), max_text_width)
         end
-        self._edit_widget:paintTo(bb, edit_x, edit_y)
     end
 
     local close_size = self._close_icon:getSize()

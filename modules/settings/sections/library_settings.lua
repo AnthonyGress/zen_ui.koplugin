@@ -12,6 +12,7 @@ local defaults = require("config/defaults")
 local LibraryFontPath = require("common/library_font_path")
 
 local status_bar_section  = require("modules/settings/sections/library_settings/status_bar_settings")
+local metadata_section    = require("modules/settings/sections/library_settings/metadata_settings")
 local settings_apply      = require("modules/settings/zen_settings_apply")
 local zen_settings_utils  = require("modules/settings/zen_settings_utils")
 
@@ -213,6 +214,7 @@ function M.build(ctx)
     local items = {}
 
     table.insert(items, status_bar_section.build(ctx))
+    table.insert(items, metadata_section.build(ctx))
     table.insert(items, {
         text_func = function()
             local cfg = ensure_library_font_cfg(config)
@@ -1484,12 +1486,12 @@ function M.build(ctx)
 
     IconItem.decorate(items[1], icons.settings_status)
     IconItem.decorate(items[2], icons.settings_layout)
-    IconItem.decorate(items[3], icons.title)
-    IconItem.decorate(items[4], icons.settings_folders)
-    IconItem.decorate(items[5], icons.settings_covers)
-    IconItem.decorate(items[6], icons.settings_scroll)
-    IconItem.decorate(items[7], icons.settings_background)
-    IconItem.decorate(items[8], icons.settings_home_folder)
+    IconItem.decorate(items[4], icons.title)
+    IconItem.decorate(items[5], icons.settings_folders)
+    IconItem.decorate(items[6], icons.settings_covers)
+    IconItem.decorate(items[7], icons.settings_scroll)
+    IconItem.decorate(items[8], icons.settings_background)
+    IconItem.decorate(items[9], icons.settings_home_folder)
 
     return items
 end
