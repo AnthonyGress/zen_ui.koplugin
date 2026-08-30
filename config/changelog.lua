@@ -316,7 +316,7 @@ return {
         "Fix reader highlight crash",
         "Fix some icons not rendering"
      },
-     ["3.3.9"] = {
+     ["3.3.0"] = {
         "Add support for multiple quote files",
         "Add context to translations",
         "Add language in Zen Settings > About",
