@@ -67,6 +67,33 @@ local function apply()
         ai_assistant = true,
     }
 
+    local function get_selection_anchor(self, dialog, index)
+        local boxes = index and self:getHighlightVisibleBoxes(index)
+            or (self.selected_text.sboxes or self.selected_text.pboxes)
+        if not boxes or #boxes == 0 then
+            return self:_getDialogAnchor(dialog, index)
+        end
+
+        local page = self.ui.paging and (index
+            and self.ui.annotation.annotations[index].pos0.page
+            or self.selected_text.pos0.page)
+        local y0, y1
+        for _i, box in ipairs(boxes) do
+            if page then box = self.view:pageToScreenTransform(page, box) end
+            if box then
+                y0 = math.min(y0 or box.y, box.y)
+                y1 = math.max(y1 or box.y + box.h, box.y + box.h)
+            end
+        end
+        if not y0 then return self:_getDialogAnchor(dialog, index) end
+
+        local padding = require("ui/size").padding.small
+        local above = y0 - padding
+        local below = self.screen_h - y1 - padding
+        local x = math.floor((self.screen_w - dialog:getContentSize().w) / 2)
+        return { x = x, y = above, w = 0, h = y1 - y0 + 2 * padding }, below >= above
+    end
+
     -- -------------------------------------------------------------------------
     -- Override: onShowHighlightMenu  (new text-selection popup)
     -- Build the 3-icon row directly instead of mutating existing button specs.
@@ -174,7 +201,7 @@ local function apply()
         self.highlight_dialog = ButtonDialog:new{
             buttons = buttons,
             anchor = function()
-                return self:_getDialogAnchor(self.highlight_dialog, index)
+                return get_selection_anchor(self, self.highlight_dialog, index)
             end,
             tap_close_callback = function()
                 if self.hold_pos then

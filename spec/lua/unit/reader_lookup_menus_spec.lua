@@ -106,6 +106,47 @@ describe("reader lookup menus", function()
         assert.is_nil(shown)
     end)
 
+    it("anchors the highlight menu outside the selected text", function()
+        local dialog_spec
+        ZenSpec.replace("ui/size", { padding = { small = 4 } })
+        ZenSpec.replace("ui/widget/buttondialog", {
+            new = function(_, spec)
+                dialog_spec = spec
+                spec.getContentSize = function() return { w = 200 } end
+                return spec
+            end,
+        })
+        local ReaderHighlight = { onShowHighlightMenu = function() end }
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { features = { highlight_lookup = true }, highlight_lookup = {} },
+        }
+        require("modules/reader/patches/highlight_menu")()
+
+        local highlight = {
+            selected_text = {
+                text = "selected",
+                sboxes = { { y = 300, h = 20 }, { y = 100, h = 20 } },
+            },
+            screen_w = 600,
+            screen_h = 800,
+            ui = { handleEvent = function() end },
+            onClose = function() end,
+            translate = function() end,
+            onHighlightSearch = function() end,
+        }
+        ReaderHighlight.onShowHighlightMenu(highlight)
+
+        local anchor, prefers_below = dialog_spec.anchor()
+        assert.same({ x = 200, y = 96, w = 0, h = 228 }, anchor)
+        assert.is_true(prefers_below)
+
+        highlight.selected_text.sboxes = { { y = 650, h = 20 }, { y = 700, h = 20 } }
+        anchor, prefers_below = dialog_spec.anchor()
+        assert.same({ x = 200, y = 646, w = 0, h = 78 }, anchor)
+        assert.is_false(prefers_below)
+    end)
+
     it("shows recognized highlight plugins by default and honors their toggles", function()
         local dialog_spec
         ZenSpec.replace("ui/widget/buttondialog", {
