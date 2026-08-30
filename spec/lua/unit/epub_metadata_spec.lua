@@ -256,11 +256,8 @@ describe("embedded EPUB metadata", function()
     end)
 
     it("moves the complete hash sidecar identity and preserves restore toggles", function()
-        local timestamp = time()
-        rawset(os, "time", function()
-            timestamp = timestamp + 2
-            return timestamp
-        end)
+        local timestamp = time() + 2
+        rawset(os, "time", function() return timestamp end)
         local storage = install_hash_docsettings()
         local old_dir, old_hash = hash_sidecar(storage, path)
         assert.is_true(util.makePath(old_dir .. "/cache"))
