@@ -1689,24 +1689,59 @@ local function apply_context_menu()
                         align = "left",
                         callback = function()
                             close_dialog()
-                            require("modules/reader/book_details").showFile(file, {
-                                config = zen_plugin and zen_plugin.config,
-                                edit_callback = function(details_widget)
-                                    local bookinfo = file_manager.bookinfo
-                                    if bookinfo.showFromBookDetails then
+                            local show_details
+                            show_details = function()
+                                require("modules/reader/book_details").showFile(file, {
+                                    config = zen_plugin and zen_plugin.config,
+                                    edit_callback = function(details_widget)
+                                        local bookinfo = file_manager.bookinfo
+                                        if not bookinfo.showFromBookDetails then
+                                            bookinfo:show(file)
+                                            return
+                                        end
+                                        local function close_details()
+                                            if details_widget
+                                                    and type(details_widget.onClose) == "function" then
+                                                details_widget:onClose()
+                                            end
+                                        end
+                                        local function refresh_details(reopen)
+                                            require("modules/filebrowser/metadata/service")
+                                                .refreshLibrary(file_manager, file)
+                                            if not reopen then return end
+                                            close_details()
+                                            UIManager:nextTick(show_details)
+                                        end
+                                        local refresh_details_on_back = false
                                         bookinfo:showFromBookDetails(file, nil, {
-                                            close_parent_callback = function()
-                                                if details_widget
-                                                        and type(details_widget.onClose) == "function" then
-                                                    details_widget:onClose()
+                                            close_parent_callback = close_details,
+                                            back_callback = function()
+                                                if refresh_details_on_back then
+                                                    refresh_details_on_back = false
+                                                    refresh_details(true)
                                                 end
                                             end,
+                                            on_renamed = function(renamed_file)
+                                                file = renamed_file
+                                                refresh_details_on_back = true
+                                            end,
+                                            on_cover_changed = function()
+                                                refresh_details_on_back = true
+                                            end,
+                                            on_saved = function(_saved_file, _draft, editor)
+                                                refresh_details_on_back = false
+                                                refresh_details(not (editor
+                                                    and editor._save_close_all == true))
+                                            end,
+                                            on_restored = function()
+                                                refresh_details_on_back = false
+                                                refresh_details(true)
+                                            end,
                                         })
-                                    else
-                                        bookinfo:show(file)
-                                    end
-                                end,
-                            })
+                                    end,
+                                })
+                            end
+                            show_details()
                         end,
                     },
                 })

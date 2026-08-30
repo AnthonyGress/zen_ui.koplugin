@@ -1,6 +1,7 @@
 local defaults = require("config/defaults")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local PresetStore = require("config/preset_store")
+local HardcoverToken = require("config/hardcover_token")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local utils = require("common/utils")
 local FontLanguage = require("common/font_language")
@@ -1026,6 +1027,9 @@ local function migrate_settings_files()
         screensaver = capture_screensaver_settings(),
     })
     if HomeQuotes.ensureFile() then
+        changed = true
+    end
+    if HardcoverToken.ensureFile() then
         changed = true
     end
     if migrate_home_quote_font_size() then

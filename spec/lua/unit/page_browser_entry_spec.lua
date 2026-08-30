@@ -40,7 +40,10 @@ describe("page browser entry", function()
         _G.__ZEN_UI_PLUGIN = nil
         G_reader_settings = ZenSpec.memorySettings()
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
-        ZenSpec.replace("common/utils", { resolveLocalIcon = function() return nil end })
+        ZenSpec.replace("common/utils", {
+            resolveIcon = function() return nil end,
+            resolveLocalIcon = function() return nil end,
+        })
         ZenSpec.replace("common/zen_logger", { new = logger_stub })
         ZenSpec.replace("config/preset_store", {
             getSettings = function() return reader_store.settings end,
@@ -614,7 +617,8 @@ describe("page browser entry", function()
         ZenSpec.replace("ui/gesturerange", button_class())
         ZenSpec.replace("ui/geometry", button_class())
         ZenSpec.replace("common/utils", {
-            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveLocalIcon = function(_, name) return "/local-icons/" .. name .. ".svg" end,
         })
         reader_store.settings.page_browser_layout = "grid"
         _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = true } } }
@@ -796,7 +800,8 @@ describe("page browser entry", function()
             end,
         })
         ZenSpec.replace("common/utils", {
-            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveLocalIcon = function(_, name) return "/local-icons/" .. name .. ".svg" end,
         })
         local shown_widgets, closed_widgets = {}, {}
         ZenSpec.replace("ui/uimanager", {
@@ -1054,7 +1059,8 @@ describe("page browser entry", function()
             unschedule = function() end,
         })
         ZenSpec.replace("common/utils", {
-            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+            resolveLocalIcon = function(_, name) return "/local-icons/" .. name .. ".svg" end,
         })
         ZenSpec.replace("common/ui/zen_modal_close", {
             installDialog = function(target, callback)

@@ -14,6 +14,7 @@ describe("book details", function()
     local progress_specs
     local progress_frees
     local full_text_message
+    local zen_button_calls
 
     local dependency_names = {
         "gettext",
@@ -32,6 +33,7 @@ describe("book details", function()
         "common/cover_utils",
         "common/ui/book_progress",
         "common/ui/truncated_text_message",
+        "common/ui/zen_button",
         "common/ui/zen_title_style",
         "common/utils",
         "modules/global/patches/menu_top_swipe",
@@ -78,6 +80,7 @@ describe("book details", function()
         progress_specs = {}
         progress_frees = 0
         full_text_message = nil
+        zen_button_calls = {}
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -187,12 +190,29 @@ describe("book details", function()
                 full_text_message = { text = text, anchor = anchor }
             end,
         })
+        ZenSpec.replace("common/ui/zen_button", {
+            paintFilled = function(_bb, x, y, w, h, text, font_size)
+                zen_button_calls[#zen_button_calls + 1] = {
+                    kind = "filled", x = x, y = y, w = w, h = h,
+                    text = text, font_size = font_size,
+                }
+            end,
+            paintOutlined = function(_bb, x, y, w, h, text, font_size)
+                zen_button_calls[#zen_button_calls + 1] = {
+                    kind = "outlined", x = x, y = y, w = w, h = h,
+                    text = text, font_size = font_size,
+                }
+            end,
+        })
         ZenSpec.replace("common/ui/zen_title_style", {
             ICON_BASE_SIZE = 28,
             ICON_SIZE = 28,
             BUTTON_SIZE = 44,
-            LEFT_PADDING = 4,
+            LEFT_PADDING = 22,
             RIGHT_PADDING = 20,
+            ACTION_FONT_SIZE = 18,
+            ACTION_PADDING_H = 8,
+            TRAILING_GAP = 4,
             ROW_HEIGHT = 44,
             VERTICAL_PADDING = 6,
             DIVIDER_HEIGHT = 2,
@@ -201,8 +221,8 @@ describe("book details", function()
             HEADER_HEIGHT = 58,
             BUTTON_PADDING = 8,
             getTitleFace = function() return { name = "settings_title" } end,
-            getLeadingIconX = function(origin) return (origin or 0) + 12 end,
-            getTitleX = function(origin) return (origin or 0) + 54 end,
+            getLeadingIconX = function(origin) return (origin or 0) + 39 end,
+            getTitleX = function(origin) return (origin or 0) + 92 end,
             getTrailingIconX = function(width, origin)
                 return (origin or 0) + width - 20 - 8 - 28
             end,
@@ -400,9 +420,9 @@ describe("book details", function()
             if spec.face and spec.face.name == "settings_title" then title_spec = spec end
         end
         assert.are.equal("settings_title", title_spec.face.name)
-        assert.are.equal(54, title_spec.paint_x)
+        assert.are.equal(92, title_spec.paint_x)
         assert.are.equal(28, icon_specs[1].width)
-        assert.are.equal(12, icon_specs[1].paint_x)
+        assert.are.equal(39, icon_specs[1].paint_x)
         assert.are.equal("/icons/close.svg", icon_specs[2].file)
         assert.are.equal(544, icon_specs[2].paint_x)
     end)
@@ -423,22 +443,25 @@ describe("book details", function()
         }, 0, 0)
 
         assert.are.equal("edit-icon  Edit", widget._edit_widget.text)
-        assert.are.equal("smallinfofont", widget._edit_widget.face.name)
-        assert.are.equal(28, widget._edit_widget.face.orig_size)
-        assert.are.equal("black", widget._edit_widget.fgcolor)
+        assert.are.equal("cfont", widget._edit_widget.face.name)
+        assert.are.equal(22, widget._edit_widget.face.orig_size)
+        assert.is_true(widget._edit_widget.bold)
+        assert.are.equal("outlined", zen_button_calls[1].kind)
+        assert.are.equal(32, zen_button_calls[1].h)
+        assert.are.equal(22, zen_button_calls[1].font_size)
         widget._zen_focus_enabled = true
         widget._zen_focus_area = "edit"
         widget:paintTo({
             paintRect = function() end,
             paintBorder = function() end,
         }, 0, 0)
-        assert.are.equal("white", widget._edit_widget.fgcolor)
+        assert.are.equal("filled", zen_button_calls[2].kind)
         widget._zen_focus_area = "back"
         widget:paintTo({
             paintRect = function() end,
             paintBorder = function() end,
         }, 0, 0)
-        assert.are.equal("black", widget._edit_widget.fgcolor)
+        assert.are.equal("outlined", zen_button_calls[3].kind)
         assert.are.equal(widget._L.close_all_x,
             widget._L.edit_x + widget._L.edit_w + widget._L.edit_close_gap)
         assert.is_true(widget:_onTap({

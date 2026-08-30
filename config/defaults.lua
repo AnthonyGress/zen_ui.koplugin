@@ -86,6 +86,10 @@ local defaults = {
     search = {
         substring = true,
     },
+    metadata = {
+        hardcover_auto_match = true,
+        epub_backup = false,
+    },
     developer = {
         double_tap_to_open_books = false,
     },
