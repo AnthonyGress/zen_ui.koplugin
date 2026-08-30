@@ -1263,7 +1263,7 @@ local function repack(source_path, stage_path, opf_path, edited_opf, scratch_pat
 
     local failure
     if not writer:setZipCompression("store")
-            or not writer:addFileFromMemory("mimetype", MIMETYPE)
+            or not writer:addFileFromMemory("mimetype", MIMETYPE, 0)
             or not writer:setZipCompression("deflate") then
         failure = writer.err or "could not write EPUB mimetype entry"
     end
@@ -1274,7 +1274,7 @@ local function repack(source_path, stage_path, opf_path, edited_opf, scratch_pat
                 if entry.path ~= "mimetype" then
                     if entry.path == opf_path then
                         wrote_opf = true
-                        if not writer:addFileFromMemory(entry.path, edited_opf) then
+                        if not writer:addFileFromMemory(entry.path, edited_opf, 0) then
                             failure = writer.err
                                 or ("could not write EPUB entry " .. entry.path)
                             break
@@ -1294,7 +1294,7 @@ local function repack(source_path, stage_path, opf_path, edited_opf, scratch_pat
                         end
                         -- KOReader closes but retains this reader after addPath.
                         writer.archive_read_disk = nil
-                        writer:addPath(entry.path, scratch_path, false)
+                        writer:addPath(entry.path, scratch_path, false, 0)
                         -- addPath returns false at EOF in supported KOReader releases.
                         if writer.err then
                             failure = writer.err

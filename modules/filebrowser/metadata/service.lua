@@ -38,6 +38,14 @@ local function copy_table(value)
     return result
 end
 
+local function copy_metadata(value)
+    local result = {}
+    value = type(value) == "table" and value or {}
+    for _i, key in ipairs(METADATA_KEYS) do result[key] = value[key] end
+    result.pages = tonumber(value.pages)
+    return result
+end
+
 local function same_list(left, right)
     if #left ~= #right then return false end
     for index, value in ipairs(left) do
@@ -419,14 +427,16 @@ local function load_original(file)
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if ok_bim and BookInfoManager and type(BookInfoManager.getBookInfo) == "function" then
         local ok, props = pcall(BookInfoManager.getBookInfo, BookInfoManager, file, false)
-        if ok and type(props) == "table" and not props.ignore_meta then return props end
+        if ok and type(props) == "table" and not props.ignore_meta then
+            return copy_metadata(props)
+        end
     end
 
     local BookInfo = require("apps/filemanager/filemanagerbookinfo")
     local fake = { ui = {} }
     setmetatable(fake, { __index = BookInfo })
     local ok, props = pcall(fake.getDocProps, fake, file)
-    return ok and type(props) == "table" and props or {}
+    return ok and type(props) == "table" and copy_metadata(props) or {}
 end
 
 local function merged_props(original, custom)
@@ -615,7 +625,7 @@ function M.save(file, draft, options)
         local ok, write_err = commit_sidecar(update_or_err)
         if not ok then return nil, write_err or "sidecar_write_failed" end
     end
-    M.invalidate(file)
+    M.invalidate(file, serialized(valid))
     return true
 end
 
@@ -656,15 +666,50 @@ function M.restore(file)
     return true
 end
 
-function M.invalidate(file)
+function M.invalidate(file, props)
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-    if ok_bim and type(BookInfoManager.deleteBookInfo) == "function" then
+    local updated = false
+    if ok_bim and type(props) == "table"
+            and type(BookInfoManager.getBookInfo) == "function"
+            and type(BookInfoManager.setBookInfoProperties) == "function" then
+        local cached = {}
+        for _i, key in ipairs(METADATA_KEYS) do
+            if key ~= "publisher" then cached[key] = props[key] end
+        end
+        cached.has_meta = "Y"
+        cached.ignore_meta = false
+        local ok_info, info = pcall(BookInfoManager.getBookInfo,
+            BookInfoManager, file, false)
+        if ok_info and not info
+                and type(BookInfoManager.extractBookInfo) == "function" then
+            pcall(BookInfoManager.extractBookInfo, BookInfoManager, file)
+        end
+        if pcall(BookInfoManager.setBookInfoProperties,
+                BookInfoManager, file, cached) then
+            ok_info, info = pcall(BookInfoManager.getBookInfo,
+                BookInfoManager, file, false)
+            updated = ok_info and type(info) == "table" and not info.ignore_meta
+                and info.has_meta == "Y"
+            if updated then
+                for _i, key in ipairs(METADATA_KEYS) do
+                    if key ~= "publisher"
+                            and tostring(info[key] or "") ~= tostring(cached[key] or "") then
+                        updated = false
+                        break
+                    end
+                end
+            end
+        end
+    end
+    if ok_bim and not updated and type(BookInfoManager.deleteBookInfo) == "function" then
         pcall(BookInfoManager.deleteBookInfo, BookInfoManager, file)
     end
     local ok_event, Event = pcall(require, "ui/event")
     local ok_ui, UIManager = pcall(require, "ui/uimanager")
     if ok_event and ok_ui then
-        UIManager:broadcastEvent(Event:new("InvalidateMetadataCache", file))
+        if not updated then
+            UIManager:broadcastEvent(Event:new("InvalidateMetadataCache", file))
+        end
         UIManager:broadcastEvent(Event:new("BookMetadataChanged"))
     end
 end

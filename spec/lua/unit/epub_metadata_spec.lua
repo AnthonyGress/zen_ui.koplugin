@@ -129,6 +129,7 @@ describe("embedded EPUB metadata", function()
     local path
     local rename_path = os.rename
     local remove_path = os.remove
+    local time = os.time
     local ffi_os = ffi.os
     local fsync_directory = ffiutil.fsyncDirectory
     local fsync_opened_file = ffiutil.fsyncOpenedFile
@@ -180,6 +181,7 @@ describe("embedded EPUB metadata", function()
     after_each(function()
         rawset(os, "rename", rename_path)
         rawset(os, "remove", remove_path)
+        rawset(os, "time", time)
         rawset(ffi, "os", ffi_os)
         rawset(ffiutil, "fsyncDirectory", fsync_directory)
         rawset(ffiutil, "fsyncOpenedFile", fsync_opened_file)
@@ -254,6 +256,11 @@ describe("embedded EPUB metadata", function()
     end)
 
     it("moves the complete hash sidecar identity and preserves restore toggles", function()
+        local timestamp = time()
+        rawset(os, "time", function()
+            timestamp = timestamp + 2
+            return timestamp
+        end)
         local storage = install_hash_docsettings()
         local old_dir, old_hash = hash_sidecar(storage, path)
         assert.is_true(util.makePath(old_dir .. "/cache"))

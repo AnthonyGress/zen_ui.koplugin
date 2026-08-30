@@ -142,15 +142,26 @@ describe("metadata service", function()
             custom_props = { unrelated = "keep" },
             doc_props = { title = "Original", authors = "Ada", language = "en" },
         }
+        local cached = {
+            title = "Original", authors = "Ada", language = "en",
+            pages = 12, directory = "/books/", filename = "book.pdf",
+            has_meta = "Y",
+        }
+        local events = {}
         local target = select(2, mock_docsettings(stored, true))
         ZenSpec.replace("apps/reader/readerui", { instance = nil })
         ZenSpec.replace("bookinfomanager", {
-            getBookInfo = function()
-                return { title = "Original", authors = "Ada", language = "en" }
+            getBookInfo = function() return cached end,
+            setBookInfoProperties = function(_self, _file, props)
+                for key, value in pairs(props) do
+                    cached[key] = value == false and nil or value
+                end
             end,
         })
         ZenSpec.replace("ui/event", { new = function(_self, name) return name end })
-        ZenSpec.replace("ui/uimanager", { broadcastEvent = function() end })
+        ZenSpec.replace("ui/uimanager", {
+            broadcastEvent = function(_self, event) events[#events + 1] = event end,
+        })
 
         assert.is_true(Service.save("/books/book.pdf", {
             title = "",
@@ -164,8 +175,47 @@ describe("metadata service", function()
         local saved_sidecar = assert(dofile(target))
         assert.same("", saved_sidecar.custom_props.title)
         assert.same("keep", saved_sidecar.custom_props.unrelated)
+        assert.same("", cached.title)
+        assert.same("Ada\nBob", cached.authors)
+        assert.same("Y", cached.has_meta)
+        assert.is_false(cached.ignore_meta)
+        assert.same({ "BookMetadataChanged" }, events)
         assert.is_nil(lfs.attributes(target .. ".zen-metadata.new"))
         assert.is_nil(lfs.attributes(target .. ".zen-metadata.old"))
+    end)
+
+    it("creates a missing book-info row before applying PDF overrides", function()
+        local cached
+        local extracted = 0
+        local events = {}
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function() return cached end,
+            extractBookInfo = function()
+                extracted = extracted + 1
+                cached = { in_progress = 0, unsupported = "not readable" }
+                return false
+            end,
+            setBookInfoProperties = function(_self, _file, props)
+                if not cached then return end
+                for key, value in pairs(props) do
+                    cached[key] = value == false and nil or value
+                end
+            end,
+        })
+        ZenSpec.replace("ui/event", { new = function(_self, name) return name end })
+        ZenSpec.replace("ui/uimanager", {
+            broadcastEvent = function(_self, event) events[#events + 1] = event end,
+        })
+
+        Service.invalidate("/books/xflate.pdf", {
+            title = "Custom PDF title",
+            authors = "Custom Author",
+        })
+
+        assert.are.equal(1, extracted)
+        assert.are.equal("Custom PDF title", cached.title)
+        assert.are.equal("Custom Author", cached.authors)
+        assert.same({ "BookMetadataChanged" }, events)
     end)
 
     it("syncs every newly created sidecar ancestor before committing", function()
@@ -190,7 +240,12 @@ describe("metadata service", function()
         })
         ZenSpec.replace("apps/reader/readerui", { instance = nil })
         ZenSpec.replace("bookinfomanager", {
-            getBookInfo = function() return { title = "Original" } end,
+            getBookInfo = function()
+                return {
+                    title = "Original", pages = 12,
+                    directory = "/books/", filename = "book.pdf",
+                }
+            end,
         })
         ZenSpec.replace("ui/event", { new = function(_self, name) return name end })
         ZenSpec.replace("ui/uimanager", { broadcastEvent = function() end })
@@ -210,7 +265,10 @@ describe("metadata service", function()
         assert.is_true(synced[test_root .. "/metadata"])
         assert.is_true(synced[test_root .. "/metadata/aa"])
         assert.is_true(synced[directory])
-        assert.are.equal("Changed", assert(dofile(target)).custom_props.title)
+        local saved_sidecar = assert(dofile(target))
+        assert.are.equal("Changed", saved_sidecar.custom_props.title)
+        assert.are.equal(12, saved_sidecar.doc_props.pages)
+        assert.is_nil(saved_sidecar.doc_props.directory)
     end)
 
     it("does not execute newline characters from a sidecar path", function()
