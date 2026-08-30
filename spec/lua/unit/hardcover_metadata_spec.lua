@@ -137,7 +137,7 @@ describe("Hardcover metadata client", function()
         assert.are.same({ ids = { 7 } }, calls[2].variables)
     end)
 
-    it("puts exact ISBN works before all deduplicated title results", function()
+    it("does not search unrelated titles after an exact ISBN match", function()
         local transport, calls = queued({
             response({ data = { editions = {{
                 id = 90,
@@ -152,30 +152,18 @@ describe("Hardcover metadata client", function()
                 book_series = {},
                 cached_tags = {},
             }} } }),
-            response({ data = { search = { ids = { 8, 7, 9 } } } }),
-            response({ data = { books = {
-                { id = 9, title = "Third", contributions = {}, book_series = {}, cached_tags = {} },
-                { id = 7, title = "Exact", contributions = {}, book_series = {}, cached_tags = {} },
-                { id = 8, title = "Second", contributions = {}, book_series = {}, cached_tags = {} },
-            } } }),
         })
 
-        local works, err = Hardcover.search("secret-token", {
+        local works = assert(Hardcover.search("secret-token", {
             isbn = "9780441013593",
             title = "Dune",
             author = "Frank Herbert",
-            include_title_results = true,
-        }, transport)
-        if not works then
-            error("combined search failed: " .. tostring(err and err.kind)
-                .. " after " .. tostring(#calls) .. " calls")
-        end
+        }, transport))
 
-        assert.are.same({ 7, 8, 9 }, { works[1].id, works[2].id, works[3].id })
+        assert.are.equal(1, #works)
+        assert.are.equal(7, works[1].id)
         assert.are.equal(90, works[1].exact_edition.id)
-        assert.is_nil(works[2].exact_edition)
-        assert.are.equal("Dune Frank Herbert", calls[3].variables.query)
-        assert.are.same({ ids = { 8, 7, 9 } }, calls[4].variables)
+        assert.are.equal(2, #calls)
     end)
 
     it("falls back to title search for an audio-only ISBN match", function()

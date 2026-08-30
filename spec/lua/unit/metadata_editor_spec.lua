@@ -460,8 +460,17 @@ describe("metadata editor Hardcover controller", function()
         ZenSpec.unload("modules/filebrowser/patches/metadata_editor")
     end)
 
-    it("applies an exact ISBN edition without a review notice", function()
+    it("shows editions before applying an exact ISBN match", function()
         _G.__ZEN_UI_PLUGIN.config.metadata.hardcover_auto_match = true
+        editions_result = {
+            {
+                id = 9,
+                edition_format = "Paperback",
+                release_year = 2024,
+                publisher = "Orbit",
+            },
+            { id = 10, edition_format = "Hardcover", publisher = "Ace" },
+        }
         local applied
         local editor = {
             applyHardcover = function(_self, metadata, summary)
@@ -472,15 +481,26 @@ describe("metadata editor Hardcover controller", function()
 
         shown.on_hardcover(shown.metadata, editor)
 
-        assert.is_nil(picker)
+        assert.are.equal("Choose a Hardcover edition", picker.title)
+        assert.are.equal(2, #picker.items)
+        assert.is_nil(applied)
+        picker.on_select(picker.items[2])
         assert.are.equal("Remote title", applied.metadata.title)
-        assert.are.equal("Paperback, 2024 · Orbit", applied.summary)
-        assert.are.equal(1, #shown_widgets)
+        assert.are.equal("Ace", applied.metadata.publisher)
+        assert.are.equal("Hardcover · Ace", applied.summary)
+        assert.are.equal(2, #shown_widgets)
         assert.are.equal("Searching Hardcover…", shown_widgets[1].text)
+        assert.are.equal("Finding Hardcover editions…", shown_widgets[2].text)
         assert.is_true(shown_widgets[1].closed)
+        assert.is_true(shown_widgets[2].closed)
     end)
 
     it("always shows the results list in manual mode", function()
+        search_result = {{
+            id = 7,
+            title = "Remote title",
+            authors = { "Remote author" },
+        }}
         local editor = {
             applyHardcover = function() error("must wait for a selection") end,
         }
@@ -493,9 +513,8 @@ describe("metadata editor Hardcover controller", function()
         assert.are.equal("Local title", search_query.title)
         assert.is_nil(search_query.author)
         assert.are.equal("123", search_query.isbn)
-        assert.is_true(search_query.include_title_results)
-        assert.matches("Exact ISBN match", picker.items[1].secondary_text, 1, true)
-        assert.is_true(picker.items[1].bold)
+        assert.is_nil(search_query.include_title_results)
+        assert.is_false(picker.items[1].bold)
         assert.is_true(picker.black_text)
         assert.matches("icons/quick_search.svg$",
             picker.title_action_icon)
@@ -545,6 +564,7 @@ describe("metadata editor Hardcover controller", function()
         _G.__ZEN_UI_PLUGIN.config.metadata.hardcover_auto_match = true
         search_result[1].exact_edition.image_url =
             "https://assets.hardcover.app/edition/9/cover.jpg"
+        editions_result = { search_result[1].exact_edition }
         local editor = {
             applyHardcover = function() return 0 end,
             getPendingCoverSource = function() return "manual" end,
@@ -706,6 +726,40 @@ describe("metadata editor Hardcover controller", function()
         os.remove(pending[1])
     end)
 
+    it("shows exact ISBN editions and applies only the chosen cover", function()
+        search_result[2] = { id = 8, title = "Unrelated book" }
+        editions_result = {
+            {
+                id = 10,
+                edition_format = "Hardcover",
+                image_url = "https://assets.hardcover.app/edition/10/cover.jpg",
+            },
+            {
+                id = 11,
+                edition_format = "Paperback",
+                image_url = "https://assets.hardcover.app/edition/11/cover.jpg",
+            },
+        }
+        local pending
+        local editor = {
+            getDraft = function() return shown.metadata end,
+            getPendingCover = function() end,
+            applyHardcover = function() error("cover selection changed metadata") end,
+            setPendingCover = function(_self, path) pending = path end,
+        }
+
+        shown.on_cover(editor)
+        picker.on_select(picker.footer_buttons[2])
+
+        assert.are.equal("Choose a Hardcover edition", picker.title)
+        assert.are.equal(2, #picker.items)
+        local selected = picker.items[2]
+        picker.on_close(selected)
+        picker.on_select(selected)
+        assert.are.equal(selected.image_file, pending)
+        os.remove(pending)
+    end)
+
     it("requires an explicit choice before staging an audio cover", function()
         editions_result = {{
             id = 10,
@@ -722,7 +776,6 @@ describe("metadata editor Hardcover controller", function()
 
         shown.on_cover(editor)
         picker.on_select(picker.footer_buttons[2])
-        picker.on_select(picker.items[1])
 
         assert.is_nil(pending)
         assert.are.equal("Choose a Hardcover edition", picker.title)
@@ -754,7 +807,6 @@ describe("metadata editor Hardcover controller", function()
 
         shown.on_cover(editor)
         picker.on_select(picker.footer_buttons[2])
-        picker.on_select(picker.items[1])
 
         assert.is_truthy(picker.items[1].image_file:match("%.jpg$"))
         assert.is_truthy(picker.items[2].image_file:match("%.jpg$"))

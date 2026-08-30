@@ -644,7 +644,6 @@ end
 function M.search(token, input, transport)
     if type(input) ~= "table" then return nil, failure("malformed") end
     local isbn = isbn_value(input)
-    local exact_works
     logger.dbg("search start isbn=", isbn and "yes" or "no")
     if isbn then
         local data, err = request(token, ISBN_QUERY, {
@@ -678,8 +677,7 @@ function M.search(token, input, transport)
                     work.exact_edition = exact_by_work[work.id]
                 end
                 logger.dbg("ISBN search complete works=", #works)
-                if input.include_title_results ~= true then return works end
-                exact_works = works
+                return works
             elseif not hydrate_err or hydrate_err.kind ~= "no_match" then
                 return nil, hydrate_err
             end
@@ -688,7 +686,6 @@ function M.search(token, input, transport)
 
     local query = search_text(input)
     if not query then
-        if exact_works then return exact_works end
         return nil, failure(isbn and "no_match" or "malformed")
     end
     local limit = math.max(1, math.min(25, math.floor(tonumber(input.limit) or SEARCH_LIMIT)))
@@ -702,25 +699,8 @@ function M.search(token, input, transport)
         return nil, failure("malformed")
     end
     local ids = unique_ids(data.search.ids)
-    if #ids == 0 then
-        if exact_works then return exact_works end
-        return nil, failure("no_match")
-    end
+    if #ids == 0 then return nil, failure("no_match") end
     local works, hydrate_err = hydrate_works(token, ids, transport)
-    if exact_works and works then
-        local combined, seen = {}, {}
-        for _i, work in ipairs(exact_works) do
-            combined[#combined + 1] = work
-            seen[work.id] = true
-        end
-        for _i, work in ipairs(works) do
-            if not seen[work.id] then combined[#combined + 1] = work end
-        end
-        works = combined
-    elseif exact_works and not works
-            and hydrate_err and hydrate_err.kind == "no_match" then
-        works, hydrate_err = exact_works, nil
-    end
     if works then logger.dbg("title search complete works=", #works) end
     return works, hydrate_err
 end

@@ -434,10 +434,6 @@ local function apply_metadata_editor()
     end
 
     local function select_work(editor, draft, work, cover_only, auto_pick)
-        if work.exact_edition and not cover_only then
-            apply_hardcover_selection(editor, work, work.exact_edition)
-            return
-        end
         local lookup_token = token()
         run_hardcover_request(_("Finding Hardcover editions…"), function()
             return require("modules/filebrowser/metadata/hardcover")
@@ -516,7 +512,6 @@ local function apply_metadata_editor()
                 author = explicit_query and query.author or nil,
                 isbn = query.isbn,
                 limit = query.limit,
-                include_title_results = true,
             }
         end
         logger.dbg("Hardcover search requested cover_only=", tostring(cover_only == true),
@@ -527,7 +522,9 @@ local function apply_metadata_editor()
                 .search(lookup_token, query)
         end, function(works)
             if replace_callback then replace_callback() end
-            if auto_pick then
+            if works[1] and works[1].exact_edition then
+                select_work(editor, draft, works[1], cover_only, false)
+            elseif auto_pick then
                 if works[1] then
                     select_work(editor, draft, works[1], cover_only, true)
                 else
