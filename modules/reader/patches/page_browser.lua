@@ -17,13 +17,17 @@ local function apply_page_browser()
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
-    -- Cache Android JNI-backed display probes before thumbnail workers fork.
+    -- CRengine callbacks may touch Android UI/JNI, which is unsafe after fork.
     if Device.isAndroid and Device:isAndroid() then
-        local has_color_screen = Device:hasColorScreen()
-        local has_eink_screen = Device:hasEinkScreen()
-        Device.hasColorScreen = function() return has_color_screen end
-        Device.hasEinkScreen = function() return has_eink_screen end
-        Device.screen.isColorScreen = Device.hasColorScreen
+        local ReaderThumbnail = require("apps/reader/modules/readerthumbnail")
+        local orig_get_page_image = ReaderThumbnail._getPageImage
+        ReaderThumbnail._getPageImage = function(self, ...)
+            local document = self.ui and self.ui.document
+            if document and type(document.setCallback) == "function" then
+                document:setCallback()
+            end
+            return orig_get_page_image(self, ...)
+        end
     end
 
     local function key_matches_menu(key)

@@ -324,6 +324,8 @@ return {
         "Add context to translations",
         "Add language in Zen Settings > About",
         "Add more toggles/options to Featured widget",
+        "Reset weekly stats on Sunday",
+        "Fix articles sorting in other languages",
         "Fix highlight menu overlap",
         "Fix guided tour bug when Zen mode toggle removed from controls",
      }

@@ -32,15 +32,21 @@ local function flush_pending_stats()
     pcall(stats_plugin.insertDB, stats_plugin)
 end
 
-local function period_starts()
+local function period_starts(now_t)
     local one_day = 86400
-    local now_t = os.date("*t")
-    local from_begin_day = now_t.hour * 3600 + now_t.min * 60 + now_t.sec
-    local now_ts = os.time()
+    now_t = now_t or os.date("*t")
+    local start_today = os.time({
+        year = now_t.year, month = now_t.month, day = now_t.day,
+        hour = 0, min = 0, sec = 0,
+    })
     return {
         one_day = one_day,
-        start_today = now_ts - from_begin_day,
-        period_begin = now_ts - 6 * one_day - from_begin_day,
+        start_today = start_today,
+        period_begin = os.time({
+            year = now_t.year, month = now_t.month,
+            day = now_t.day - now_t.wday + 1,
+            hour = 0, min = 0, sec = 0,
+        }),
         start_month = os.time({
             year = now_t.year, month = now_t.month, day = 1,
             hour = 0, min = 0, sec = 0,
@@ -422,23 +428,14 @@ function StatsDB.queryStats()
         return stats
     end
 
-    local one_day = 86400
-
     local ok, query_err = pcall(function()
         -- Time boundaries
-        local now_t = os.date("*t")
-        local from_begin_day = now_t.hour * 3600 + now_t.min * 60 + now_t.sec
-        local now_ts = os.time()
-        local start_today = now_ts - from_begin_day
-        local period_begin = now_ts - 6 * one_day - from_begin_day
-        local start_month = os.time({
-            year = now_t.year, month = now_t.month, day = 1,
-            hour = 0, min = 0, sec = 0,
-        })
-        local start_year = os.time({
-            year = now_t.year, month = 1, day = 1,
-            hour = 0, min = 0, sec = 0,
-        })
+        local starts = period_starts()
+        local one_day = starts.one_day
+        local start_today = starts.start_today
+        local period_begin = starts.period_begin
+        local start_month = starts.start_month
+        local start_year = starts.start_year
 
         -- Today
         local sql_today = [[
@@ -456,7 +453,7 @@ function StatsDB.queryStats()
         logger.info("today pages=", stats.today_pages,
                     "duration=", stats.today_duration)
 
-        -- Last 7 days (totals)
+        -- This week (totals)
         local sql_week = [[
             SELECT count(*), sum(sum_duration)
             FROM (
@@ -472,7 +469,7 @@ function StatsDB.queryStats()
         logger.info("week pages=", stats.week_pages,
                     "duration=", stats.week_duration)
 
-        -- Last 7 days (daily breakdown)
+        -- This week (daily breakdown)
         -- NOTE: %% in the format string becomes % after string.format(); SQLite
         -- then receives strftime('%Y-%m-%d', …) which is what it expects.
         local sql_daily = [[

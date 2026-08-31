@@ -65,4 +65,22 @@ describe("statistics database", function()
         assert.is_nil(sqls[2]:find("sum(duration) AS duration", 1, true))
         assert.are.same({ pages_today = 9 }, daily_pages)
     end)
+
+    it("starts weekly home stats at local Sunday midnight", function()
+        local StatsDB = require("common/db_stats")
+        local period_starts
+        for i = 1, 20 do
+            local name, value = debug.getupvalue(StatsDB.queryHomeStats, i)
+            if not name then break end
+            if name == "period_starts" then period_starts = value end
+        end
+        local expected = os.time({
+            year = 2026, month = 8, day = 30,
+            hour = 0, min = 0, sec = 0,
+        })
+
+        assert.are.equal(expected, period_starts({
+            year = 2026, month = 8, day = 31, wday = 2,
+        }).period_begin)
+    end)
 end)
