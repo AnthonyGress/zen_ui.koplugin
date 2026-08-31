@@ -30,39 +30,21 @@ describe("Hardcover metadata client", function()
 
     it("searches with variables and normalizes works in result order", function()
         local transport, calls = queued({
-            response({ data = { search = { ids = { 2, 1, 2 } } } }),
-            response({ data = { books = {
-                {
-                    id = 1,
-                    title = "Second",
-                    contributions = {},
-                    book_series = {},
-                    cached_tags = {},
-                },
-                {
-                    id = 2,
-                    title = "Dune",
-                    description = "Spice.",
-                    release_year = 1965,
-                    pages = 412,
-                    editions_count = 84,
-                    users_count = 1000,
-                    image = {
-                        url = "https://assets.hardcover.app/book/2/cover.jpeg",
+            response({ data = { search = {
+                ids = { 2, 1, 2 },
+                results = {
+                    {
+                        title = "Dune",
+                        release_year = 1965,
+                        author_names = { "Frank Herbert", "Frank Herbert" },
+                        series_names = { "Dune" },
+                        featured_series_position = 1,
+                        image = {
+                            url = "https://assets.hardcover.app/books/2.jpg",
+                        },
                     },
-                    contributions = {
-                        { author = { name = "Frank Herbert" } },
-                        { author = { name = "Frank Herbert" } },
-                        { contribution = "Narrator", author = { name = "George Guidall" } },
-                        { contribution = "translator", author = { name = "Translator" } },
-                    },
-                    book_series = {
-                        { featured = true, position = 1, series = { name = "Dune" } },
-                    },
-                    cached_tags = {
-                        { tag = "Science Fiction" },
-                        { tag = "Adventure" },
-                    },
+                    { title = "Second", author_names = {} },
+                    { title = "Dune", author_names = { "Frank Herbert" } },
                 },
             } } }),
         })
@@ -78,18 +60,14 @@ describe("Hardcover metadata client", function()
         assert.are.same({ "Frank Herbert" }, works[1].authors)
         assert.are.equal("Dune", works[1].series_name)
         assert.are.equal(1, works[1].series_index)
-        assert.are.same({ "Science Fiction", "Adventure" }, works[1].genres)
-        assert.are.equal("Spice.", works[1].description)
-        assert.are.equal("https://assets.hardcover.app/book/2/cover.jpeg",
-            works[1].image_url)
+        assert.are.equal("https://assets.hardcover.app/books/2.jpg", works[1].image_url)
         assert.are.equal(1, works[2].id)
         assert.are.equal("secret-token", calls[1].token)
         assert.are.same({ query = "Dune Frank Herbert", page = 1, perPage = 7 }, calls[1].variables)
         assert.is_truthy(calls[1].query:find("$query", 1, true))
+        assert.is_truthy(calls[1].query:find("results", 1, true))
         assert.is_nil(calls[1].query:find("Dune Frank Herbert", 1, true))
-        assert.are.same({ ids = { 2, 1 } }, calls[2].variables)
-        assert.is_truthy(calls[2].query:find("contribution", 1, true))
-        assert.is_truthy(calls[2].query:find("cached_image", 1, true))
+        assert.are.equal(1, #calls)
     end)
 
     it("uses an exact ISBN variable before title search", function()
@@ -106,17 +84,15 @@ describe("Hardcover metadata client", function()
                     release_year = 2005,
                     language = { code2 = "en" },
                     publisher = { name = "Ace" },
+                    book = {
+                        id = 7,
+                        title = "Dune",
+                        contributions = {},
+                        book_series = {},
+                        cached_tags = {},
+                    },
                 },
                 { id = 91, book_id = 7, reading_format_id = 1 },
-            } } }),
-            response({ data = { books = {
-                {
-                    id = 7,
-                    title = "Dune",
-                    contributions = {},
-                    book_series = {},
-                    cached_tags = {},
-                },
             } } }),
         })
 
@@ -134,7 +110,8 @@ describe("Hardcover metadata client", function()
         assert.are.equal("Ace", works[1].exact_edition.publisher)
         assert.are.same({ isbn = "9780441013593", limit = 10 }, calls[1].variables)
         assert.is_nil(calls[1].query:find("9780441013593", 1, true))
-        assert.are.same({ ids = { 7 } }, calls[2].variables)
+        assert.is_truthy(calls[1].query:find("book {", 1, true))
+        assert.are.equal(1, #calls)
     end)
 
     it("does not search unrelated titles after an exact ISBN match", function()
@@ -144,13 +121,13 @@ describe("Hardcover metadata client", function()
                 book_id = 7,
                 isbn_13 = "9780441013593",
                 reading_format_id = 1,
-            }} } }),
-            response({ data = { books = {{
-                id = 7,
-                title = "Exact",
-                contributions = {},
-                book_series = {},
-                cached_tags = {},
+                book = {
+                    id = 7,
+                    title = "Exact",
+                    contributions = {},
+                    book_series = {},
+                    cached_tags = {},
+                },
             }} } }),
         })
 
@@ -163,7 +140,7 @@ describe("Hardcover metadata client", function()
         assert.are.equal(1, #works)
         assert.are.equal(7, works[1].id)
         assert.are.equal(90, works[1].exact_edition.id)
-        assert.are.equal(2, #calls)
+        assert.are.equal(1, #calls)
     end)
 
     it("falls back to title search for an audio-only ISBN match", function()
@@ -174,14 +151,13 @@ describe("Hardcover metadata client", function()
                 edition_format = "Audio CD",
                 reading_format_id = 2,
             }} } }),
-            response({ data = { search = { ids = { 8 } } } }),
-            response({ data = { books = {{
-                id = 8,
-                title = "Never Split the Difference",
-                contributions = {},
-                book_series = {},
-                cached_tags = {},
-            }} } }),
+            response({ data = { search = {
+                ids = { 8 },
+                results = {{
+                    title = "Never Split the Difference",
+                    author_names = { "Chris Voss" },
+                }},
+            } } }),
         })
 
         local works = assert(Hardcover.search("secret-token", {
@@ -195,18 +171,15 @@ describe("Hardcover metadata client", function()
         assert.are.equal("9780441013593", calls[1].variables.isbn)
         assert.are.equal("Never Split the Difference Chris Voss",
             calls[2].variables.query)
+        assert.are.equal(2, #calls)
     end)
 
     it("falls back to title and author when normalized ISBN is empty", function()
         local transport, calls = queued({
-            response({ data = { search = { ids = { 7 } } } }),
-            response({ data = { books = {{
-                id = 7,
-                title = "Dune",
-                contributions = { { author = { name = "Frank Herbert" } } },
-                book_series = {},
-                cached_tags = {},
-            }} } }),
+            response({ data = { search = {
+                ids = { 7 },
+                results = {{ title = "Dune", author_names = { "Frank Herbert" } }},
+            } } }),
         })
 
         local works = assert(Hardcover.search("secret-token", {
@@ -221,18 +194,14 @@ describe("Hardcover metadata client", function()
             page = 1,
             perPage = 10,
         }, calls[1].variables)
+        assert.are.equal(1, #calls)
     end)
 
     it("falls back to title and author when the ISBN is invalid", function()
         local transport, calls = queued({
-            response({ data = { search = { ids = { 7 } } } }),
-            response({ data = { books = {{
-                id = 7,
-                title = "Dune",
-                contributions = {},
-                book_series = {},
-                cached_tags = {},
-            }} } }),
+            response({ data = { search = {
+                ids = { 7 }, results = {{ title = "Dune" }},
+            } } }),
         })
 
         assert(Hardcover.search("secret-token", {
@@ -242,18 +211,14 @@ describe("Hardcover metadata client", function()
         }, transport))
 
         assert.are.equal("Dune Frank Herbert", calls[1].variables.query)
+        assert.are.equal(1, #calls)
     end)
 
     it("does not query a shape-valid ISBN with a bad checksum", function()
         local transport, calls = queued({
-            response({ data = { search = { ids = { 7 } } } }),
-            response({ data = { books = {{
-                id = 7,
-                title = "Dune",
-                contributions = {},
-                book_series = {},
-                cached_tags = {},
-            }} } }),
+            response({ data = { search = {
+                ids = { 7 }, results = {{ title = "Dune" }},
+            } } }),
         })
 
         assert(Hardcover.search("secret-token", {
@@ -262,19 +227,15 @@ describe("Hardcover metadata client", function()
         }, transport))
 
         assert.are.equal("Dune", calls[1].variables.query)
+        assert.are.equal(1, #calls)
     end)
 
     it("falls back to title and author when a valid ISBN has no match", function()
         local transport, calls = queued({
             response({ data = { editions = {} } }),
-            response({ data = { search = { ids = { 7 } } } }),
-            response({ data = { books = {{
-                id = 7,
-                title = "Dune",
-                contributions = {},
-                book_series = {},
-                cached_tags = {},
-            }} } }),
+            response({ data = { search = {
+                ids = { 7 }, results = {{ title = "Dune" }},
+            } } }),
         })
 
         local works = assert(Hardcover.search("secret-token", {
@@ -286,11 +247,25 @@ describe("Hardcover metadata client", function()
         assert.are.equal("Dune", works[1].title)
         assert.are.equal("9780441013593", calls[1].variables.isbn)
         assert.are.equal("Dune Frank Herbert", calls[2].variables.query)
+        assert.are.equal(2, #calls)
     end)
 
     it("normalizes editions and ranks audio formats last", function()
         local transport, calls = queued({
-            response({ data = { editions = {
+            response({ data = {
+                book = {
+                    id = 7,
+                    title = "Dune",
+                    description = "Spice.",
+                    contributions = {{ author = { name = "Frank Herbert" } }},
+                    book_series = {{
+                        featured = true,
+                        position = 1,
+                        series = { name = "Dune" },
+                    }},
+                    cached_tags = {{ tag = "Science Fiction" }},
+                },
+                editions = {
                 {
                     id = 9,
                     book_id = 7,
@@ -324,8 +299,13 @@ describe("Hardcover metadata client", function()
             } } }),
         })
 
-        local editions = assert(Hardcover.editions("secret-token", { id = 7 }, transport))
+        local work = { id = 7, title = "Search result" }
+        local editions = assert(Hardcover.editions("secret-token", work, transport))
 
+        assert.are.equal("Dune", work.title)
+        assert.are.same({ "Frank Herbert" }, work.authors)
+        assert.are.same({ "Science Fiction" }, work.genres)
+        assert.are.equal("Spice.", work.description)
         assert.are.equal(3, #editions)
         assert.are.equal(9, editions[1].id)
         assert.are.equal(7, editions[1].work_id)
@@ -464,6 +444,7 @@ describe("Hardcover metadata HTTPS transport", function()
     local timeout_calls
     local certificate_name
     local tls_options
+    local response_chunk
 
     before_each(function()
         originals = {}
@@ -477,6 +458,7 @@ describe("Hardcover metadata HTTPS transport", function()
         timeout_calls = {}
         certificate_name = "api.hardcover.app"
         tls_options = nil
+        response_chunk = nil
         ZenSpec.replace("ui/network/manager", {
             isConnected = function() return true end,
         })
@@ -538,7 +520,8 @@ describe("Hardcover metadata HTTPS transport", function()
                 if host == "assets.hardcover.app" then
                     request.sink("\255\216fixture")
                 else
-                    request.sink(JSON.encode({ data = { search = { ids = {} } } }))
+                    request.sink(response_chunk
+                        or JSON.encode({ data = { search = { ids = {} } } }))
                 end
                 return 1, 200, {}, "HTTP/1.1 200 OK"
             end,
@@ -577,6 +560,14 @@ describe("Hardcover metadata HTTPS transport", function()
         local works, err = Hardcover.search("secret-token", { title = "Dune" })
         assert.is_nil(works)
         assert.are.equal("network", err.kind)
+    end)
+
+    it("rejects oversized metadata responses", function()
+        response_chunk = string.rep("x", 2 * 1024 * 1024 + 1)
+        local Hardcover = require("modules/filebrowser/metadata/hardcover")
+        local works, err = Hardcover.search("secret-token", { title = "Dune" })
+        assert.is_nil(works)
+        assert.are.equal("malformed", err.kind)
     end)
 
     it("downloads supported image bytes from the cover host", function()

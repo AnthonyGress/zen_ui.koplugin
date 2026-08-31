@@ -1428,11 +1428,16 @@ local function metadata_showcase_state()
         edition_summary = editor.edition_summary,
         hardcover_text = editor:_hardcoverText(),
         open_with_text = editor._open_with_button and editor._open_with_button.text,
+        restore_text = editor._restore_button and editor._restore_button.text,
         hardcover_filled = editor._hardcover_button
             and editor._hardcover_button._zen_filled == true,
         has_pending_cover = editor:getPendingCover() ~= nil,
         title_action = editor.title_bar and editor.title_bar.action
             and editor.title_bar.action.text or nil,
+        title_action_zen = editor.title_bar and editor.title_bar.action
+            and editor.title_bar.action.zen_button == true,
+        title_action_font_size = editor.title_bar and editor.title_bar.action
+            and editor.title_bar.action.text_font_size or nil,
         fields = fields,
         page_count = editor.page_num,
         width = Screen:getWidth(),
@@ -1468,7 +1473,7 @@ local function show_metadata_editor_fixture(orientation)
                 },
                 footer_buttons = {
                     { text = "Choose image" },
-                    { text = "Find on Hardcover", filled = true },
+                    { text = "Find metadata", filled = true },
                 },
                 footer_buttons_under_header = true,
                 hide_header_divider = true,
@@ -1519,7 +1524,7 @@ local function show_metadata_picker_fixture()
     end
     local plugin_root = require("common/plugin_root")
     require("common/ui/zen_menu_picker"){
-        title = "Choose a Hardcover edition",
+        title = "Choose an edition",
         rows_per_page = 5,
         items = {
             {

@@ -265,7 +265,9 @@ Feel free to join the [Discord Community](https://discord.gg/Tv2PhrCPQ8) if you 
 
 See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
 
-ZenOS creates an empty `settings/ZenOS/hardcover_token.txt` placeholder for the optional Hardcover API token. The file contains only the token and can be edited directly.
+Metadata lookup can combine Hardcover, Google Books, and Open Library results in one chooser. Providers can be enabled independently under **Zen UI Settings → Library → Metadata**.
+
+ZenOS creates empty `settings/ZenOS/hardcover_token.txt` and `settings/ZenOS/google_books_api_key.txt` placeholders for the optional Hardcover token and Google Books API key. Each file contains only its credential and can be edited directly. Open Library does not require a token.
 
 ## License
 

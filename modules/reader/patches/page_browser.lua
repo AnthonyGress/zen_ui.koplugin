@@ -17,6 +17,12 @@ local function apply_page_browser()
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
+    -- Older Android builds call JNI here; cache it before thumbnail workers fork.
+    if Device.isAndroid and Device:isAndroid() and type(Device.hasColorScreen) == "function" then
+        local has_color_screen = Device:hasColorScreen()
+        Device.hasColorScreen = function() return has_color_screen end
+    end
+
     local function key_matches_menu(key)
         if not key then return false end
         if type(key.match) ~= "function" then return key == "Menu" end

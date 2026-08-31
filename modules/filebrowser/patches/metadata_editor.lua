@@ -5,7 +5,8 @@ local function apply_metadata_editor()
 
     local Editor = require("modules/filebrowser/metadata_editor")
     local Service = require("modules/filebrowser/metadata/service")
-    local TokenStore = require("config/hardcover_token")
+    local HardcoverStore = require("config/hardcover_token")
+    local GoogleBooksStore = require("config/google_books_key")
     local DocSettings = require("docsettings")
     local ffiUtil = require("ffi/util")
     local lfs = require("libs/libkoreader-lfs")
@@ -85,10 +86,6 @@ local function apply_metadata_editor()
         return table.concat(parts, separator or " · ")
     end
 
-    local function token()
-        return TokenStore.get()
-    end
-
     local function metadata_config()
         local config = zen_plugin and zen_plugin.config
         return type(config) == "table" and type(config.metadata) == "table"
@@ -98,7 +95,7 @@ local function apply_metadata_editor()
     local function open_metadata_settings()
         if not zen_plugin then
             UIManager:show(InfoMessage:new{
-                text = _("Open Zen UI Settings → Library → Metadata to set a Hardcover token."),
+                text = _("Open Zen UI Settings → Library → Metadata to configure providers."),
             })
             return
         end
@@ -110,7 +107,7 @@ local function apply_metadata_editor()
         })
     end
 
-    local function offer_token_settings(text)
+    local function offer_metadata_settings(text)
         local ConfirmBox = require("ui/widget/confirmbox")
         UIManager:show(ConfirmBox:new{
             text = text,
@@ -120,59 +117,125 @@ local function apply_metadata_editor()
         })
     end
 
-    local hardcover_errors = {
-        offline = _("Connect to a network before searching Hardcover."),
-        rate_limited = _("Hardcover is rate-limiting requests. Try again later."),
-        server = _("Hardcover is unavailable right now. Try again later."),
-        malformed = _("Hardcover returned an unreadable response."),
-        no_match = _("No Hardcover matches were found."),
-        network = _("Could not reach Hardcover."),
+    local providers = {
+        {
+            id = "hardcover",
+            label = _("Hardcover"),
+            module = "modules/filebrowser/metadata/hardcover",
+            enabled_key = "hardcover_enabled",
+            credential = HardcoverStore.get,
+        },
+        {
+            id = "google_books",
+            label = _("Google Books"),
+            module = "modules/filebrowser/metadata/google_books",
+            enabled_key = "google_books_enabled",
+            credential = GoogleBooksStore.get,
+        },
+        {
+            id = "open_library",
+            label = _("Open Library"),
+            module = "modules/filebrowser/metadata/open_library",
+            enabled_key = "open_library_enabled",
+        },
     }
 
-    local function show_hardcover_error(err)
+    local providers_by_id = {}
+    for _i, provider in ipairs(providers) do providers_by_id[provider.id] = provider end
+
+    local function provider_label(id)
+        return providers_by_id[id] and providers_by_id[id].label or ""
+    end
+
+    local function active_providers()
+        local config = metadata_config()
+        local active, missing_credential, enabled = {}, false, false
+        for _i, provider in ipairs(providers) do
+            if config[provider.enabled_key] ~= false then
+                enabled = true
+                local credential = provider.credential and provider.credential() or ""
+                if not provider.credential or credential ~= "" then
+                    active[#active + 1] = {
+                        id = provider.id,
+                        label = provider.label,
+                        module = provider.module,
+                        credential = credential,
+                    }
+                else
+                    missing_credential = true
+                end
+            end
+        end
+        return active, missing_credential, enabled
+    end
+
+    local metadata_errors = {
+        offline = _("Connect to a network before searching metadata."),
+        rate_limited = _("A metadata provider is rate-limiting requests. Try again later."),
+        server = _("A metadata provider is unavailable right now. Try again later."),
+        malformed = _("A metadata provider returned an unreadable response."),
+        no_match = _("No metadata matches were found."),
+        network = _("Could not reach a metadata provider."),
+    }
+
+    local function show_metadata_error(err)
         local kind = type(err) == "table" and err.kind or nil
-        logger.warn("Hardcover request failed kind=", tostring(kind),
+        local provider = type(err) == "table" and provider_label(err.provider) or ""
+        logger.warn("Metadata request failed provider=", provider, " kind=", tostring(kind),
             " status=", tostring(type(err) == "table" and err.status or nil),
             " retry_after=", tostring(type(err) == "table" and err.retry_after or nil))
         if kind == "unauthorized" or kind == "forbidden" then
-            offer_token_settings(_("The Hardcover token was rejected. Check that it has read:catalog access."))
+            offer_metadata_settings(provider ~= ""
+                and T(_("%1 rejected its API credential. Open metadata settings?"), provider)
+                or _("A metadata provider rejected its API credential. Open metadata settings?"))
             return
         end
         UIManager:show(InfoMessage:new{
-            text = hardcover_errors[kind] or _("Hardcover lookup failed."),
+            text = metadata_errors[kind] or _("Metadata lookup failed."),
         })
     end
 
-    local function run_hardcover_request(text, task, on_success)
+    local active_metadata_notice
+
+    local function run_metadata_request(text, task, on_success)
         local Trapper = require("ui/trapper")
-        Trapper:wrap(function()
-            logger.dbg("Hardcover task start:", text)
-            local notice = InfoMessage:new{ text = text }
-            UIManager:show(notice)
-            if UIManager.forceRePaint then UIManager:forceRePaint() end
-            local completed, result, err = Trapper:dismissableRunInSubprocess(task, notice)
-            local function close_notice()
-                UIManager:close(notice)
+        local function run()
+            logger.dbg("Metadata task start:", text)
+            local owns_notice = active_metadata_notice == nil
+            if owns_notice then
+                active_metadata_notice = InfoMessage:new{ text = text }
+                UIManager:show(active_metadata_notice)
                 if UIManager.forceRePaint then UIManager:forceRePaint() end
+            end
+            local completed, result, err = Trapper:dismissableRunInSubprocess(
+                task, active_metadata_notice)
+            local function close_notice()
+                if owns_notice then
+                    UIManager:close(active_metadata_notice)
+                    active_metadata_notice = nil
+                    if UIManager.forceRePaint then UIManager:forceRePaint() end
+                end
             end
             if not completed then
                 close_notice()
-                logger.dbg("Hardcover task cancelled:", text)
+                logger.dbg("Metadata task cancelled:", text)
                 return
             end
             if result == nil then
                 close_notice()
-                show_hardcover_error(err)
+                show_metadata_error(err)
                 return
             end
-            logger.dbg("Hardcover task complete:", text)
+            logger.dbg("Metadata task complete:", text)
             local ok, callback_err = pcall(on_success, result)
             close_notice()
             if not ok then
-                logger.warn("Hardcover result handling failed:", tostring(callback_err))
-                show_hardcover_error({ kind = "malformed" })
+                logger.warn("Metadata result handling failed:", tostring(callback_err))
+                show_metadata_error({ kind = "malformed" })
             end
-        end)
+        end
+        if Trapper:isWrapped() then return run() end
+        return Trapper:wrap(run)
     end
 
     local function first_author(draft)
@@ -188,6 +251,7 @@ local function apply_metadata_editor()
 
     local function work_secondary(work)
         local parts = {}
+        parts[#parts + 1] = provider_label(work._provider)
         if work.exact_edition then parts[#parts + 1] = _("Exact ISBN match") end
         parts[#parts + 1] = table.concat(
             type(work.authors) == "table" and work.authors or {}, ", ")
@@ -211,6 +275,7 @@ local function apply_metadata_editor()
     local function edition_secondary(edition)
         local pages = tonumber(edition.pages)
         return join_parts({
+            provider_label(edition._provider),
             edition.publisher,
             language_label(edition.language),
             pages and T(_("%1 pages"), pages) or "",
@@ -268,57 +333,70 @@ local function apply_metadata_editor()
             "zen-metadata-cover-" .. cover_download_serial .. ".img")
     end
 
-    local function stage_hardcover_cover(editor, edition, path)
+    local function stage_provider_cover(editor, edition, path)
         local original = path
+        edition._cover_path = nil
         path = normalized_downloaded_cover(original)
         if not path then
             os.remove(original)
             editor:showError(_("The cover image could not be saved."))
             return
         end
-        edition._cover_path = nil
-        editor:setPendingCover(path, true, "hardcover")
+        editor:setPendingCover(path, true, edition._provider or "hardcover")
         if type(editor._refreshCoverPicker) == "function" then
             editor._refreshCoverPicker()
         end
-        logger.dbg("Hardcover cover staged edition_id=", tostring(edition.id))
+        logger.dbg("Metadata cover staged provider=", tostring(edition._provider),
+            " edition_id=", tostring(edition.id))
     end
 
-    local function download_hardcover_cover(editor, edition, show_missing_error)
+    local function download_provider_cover(editor, edition, show_missing_error)
         if trim(edition.image_url) == "" then
-            if show_missing_error then show_hardcover_error({ kind = "no_match" }) end
+            if show_missing_error then show_metadata_error({ kind = "no_match" }) end
+            return
+        end
+        local provider = providers_by_id[edition._provider]
+        if not provider then
+            show_metadata_error({ kind = "malformed" })
             return
         end
         if edition._cover_path then
-            stage_hardcover_cover(editor, edition, edition._cover_path)
+            stage_provider_cover(editor, edition, edition._cover_path)
             return
         end
         local destination = next_cover_destination()
-        run_hardcover_request(_("Downloading cover…"), function()
-            return require("modules/filebrowser/metadata/hardcover")
-                .downloadCover(edition.image_url, destination)
+        run_metadata_request(_("Downloading cover…"), function()
+            return require(provider.module).downloadCover(edition.image_url, destination)
         end, function(path)
-            stage_hardcover_cover(editor, edition, path)
+            stage_provider_cover(editor, edition, path)
         end)
     end
 
-    local function apply_hardcover_selection(editor, work, edition, cover_only)
+    local function apply_provider_selection(editor, work, edition, cover_only)
         if cover_only then
-            download_hardcover_cover(editor, edition, true)
+            download_provider_cover(editor, edition, true)
             return
         end
-        local Client = require("modules/filebrowser/metadata/hardcover")
+        local provider = providers_by_id[work._provider]
+        if not provider then
+            show_metadata_error({ kind = "malformed" })
+            return
+        end
+        local Client = require(provider.module)
         local metadata, err = Client.draft(work, edition)
         if not metadata then
-            show_hardcover_error(err)
+            show_metadata_error(err)
             return
         end
-        local retained = editor:applyHardcover(metadata, edition_summary(edition))
-        logger.dbg("Hardcover metadata staged work_id=", tostring(work.id),
+        local retained = editor:applyHardcover(metadata, edition_summary(edition),
+            provider.id, provider.label)
+        logger.dbg("Metadata staged provider=", provider.id, " work_id=", tostring(work.id),
             " edition_id=", tostring(edition.id), " retained=", tostring(retained))
         if trim(edition.image_url) ~= ""
                 and editor:getPendingCoverSource() ~= "manual" then
-            download_hardcover_cover(editor, edition, false)
+            UIManager:nextTick(function()
+                download_provider_cover(editor, edition, false)
+            end)
         end
     end
 
@@ -330,62 +408,65 @@ local function apply_metadata_editor()
         return result
     end
 
-    local function cleanup_cover_previews(editions, keep)
-        for _i, edition in ipairs(editions) do
-            local path = edition._cover_path
+    local function cleanup_cover_previews(entries, keep)
+        for _i, entry in ipairs(entries) do
+            local path = entry._cover_path
             if path and path ~= keep then os.remove(path) end
-            if path ~= keep then edition._cover_path = nil end
+            if path ~= keep then entry._cover_path = nil end
         end
     end
 
-    local function prepare_cover_previews(
-            editor, editions, callback, require_cover, notice_text)
+    local function prepare_cover_previews(entries, callback, trap_widget)
         local downloads = {}
-        for index, edition in ipairs(editions) do
-            if trim(edition.image_url) ~= "" then
+        for index, entry in ipairs(entries) do
+            local provider = providers_by_id[entry._provider]
+            if provider and trim(entry.image_url) ~= "" then
                 downloads[#downloads + 1] = {
                     index = index,
-                    url = edition.image_url,
+                    url = entry.image_url,
                     destination = next_cover_destination(),
+                    module = provider.module,
                 }
             end
         end
         if #downloads == 0 then
-            if require_cover then
-                editor:showError(_("The cover image could not be saved."))
-            else
-                callback(editions)
-            end
+            callback(entries)
             return
         end
-        run_hardcover_request(notice_text, function()
-            local Client = require("modules/filebrowser/metadata/hardcover")
+        local function fetch_previews()
             local completed = {}
             for _i, download in ipairs(downloads) do
-                local path = Client.downloadCover(download.url, download.destination)
+                local path = require(download.module)
+                    .downloadCover(download.url, download.destination)
                 if path then
-                    completed[#completed + 1] = { index = download.index, path = path }
+                    completed[#completed + 1] = {
+                        index = download.index,
+                        path = path,
+                    }
                 end
             end
             return completed
-        end, function(completed)
-            local ready = require_cover and {} or editions
+        end
+        local function finish(completed)
             for _i, download in ipairs(completed) do
-                local edition = editions[download.index]
+                local entry = entries[download.index]
                 local path = normalized_downloaded_cover(download.path)
-                if edition and path then
-                    edition._cover_path = path
-                    if require_cover then ready[#ready + 1] = edition end
+                if entry and path then
+                    entry._cover_path = path
                 else
                     os.remove(download.path)
                 end
             end
-            if require_cover and #ready == 0 then
-                editor:showError(_("The cover image could not be saved."))
-                return
-            end
-            callback(ready)
-        end)
+            callback(entries)
+        end
+        if trap_widget then
+            local completed, result = require("ui/trapper")
+                :dismissableRunInSubprocess(fetch_previews, trap_widget)
+            trap_widget.dismiss_callback = nil
+            if completed and result then finish(result) end
+            return
+        end
+        run_metadata_request(_("Searching metadata…"), fetch_previews, finish)
     end
 
     local function present_edition_picker(editor, draft, work, editions, cover_only)
@@ -396,11 +477,12 @@ local function apply_metadata_editor()
                 secondary_text = edition_secondary(edition),
                 image_file = edition._cover_path,
                 edition = edition,
+                work = work,
             }
         end
         local picker
         picker = require("common/ui/zen_menu_picker"){
-            title = _("Choose a Hardcover edition"),
+            title = _("Choose an edition"),
             items = items,
             rows_per_page = 5,
             black_text = true,
@@ -417,7 +499,7 @@ local function apply_metadata_editor()
                 cleanup_cover_previews(editions, keep)
             end,
             on_select = function(item)
-                apply_hardcover_selection(editor, work, item.edition, cover_only)
+                apply_provider_selection(editor, item.work, item.edition, cover_only)
             end,
         }
     end
@@ -425,20 +507,27 @@ local function apply_metadata_editor()
     local function show_edition_picker(editor, draft, work, editions, cover_only)
         if cover_only then editions = cover_editions(editions) end
         if #editions == 0 then
-            show_hardcover_error({ kind = "no_match" })
+            show_metadata_error({ kind = "no_match" })
             return
         end
-        prepare_cover_previews(editor, editions, function(ready)
+        prepare_cover_previews(editions, function(ready)
             present_edition_picker(editor, draft, work, ready, cover_only)
-        end, cover_only, _("Finding Hardcover editions…"))
+        end)
     end
 
     local function select_work(editor, draft, work, cover_only, auto_pick)
-        local lookup_token = token()
-        run_hardcover_request(_("Finding Hardcover editions…"), function()
-            return require("modules/filebrowser/metadata/hardcover")
-                .editions(lookup_token, work)
-        end, function(editions)
+        local provider = providers_by_id[work._provider]
+        if not provider then
+            show_metadata_error({ kind = "malformed" })
+            return
+        end
+        local credential = provider.credential and provider.credential() or ""
+        if provider.credential and credential == "" then
+            offer_metadata_settings(_("This metadata provider needs an API credential. Open settings?"))
+            return
+        end
+        local function use_editions(editions)
+            for _i, edition in ipairs(editions) do edition._provider = provider.id end
             if cover_only then editions = cover_editions(editions) end
             if auto_pick then
                 local best
@@ -449,58 +538,99 @@ local function apply_metadata_editor()
                     end
                 end
                 if best then
-                    apply_hardcover_selection(editor, work, best, cover_only)
+                    apply_provider_selection(editor, work, best, cover_only)
                 elseif #editions > 0 then
                     show_edition_picker(editor, draft, work, editions, cover_only)
                 else
-                    show_hardcover_error({ kind = "no_match" })
+                    show_metadata_error({ kind = "no_match" })
                 end
             elseif #editions == 1 and editions[1].is_audio ~= true then
-                apply_hardcover_selection(editor, work, editions[1], cover_only)
+                apply_provider_selection(editor, work, editions[1], cover_only)
             else
                 show_edition_picker(editor, draft, work, editions, cover_only)
             end
+        end
+        if type(work._edition) == "table" then
+            use_editions({ work._edition })
+            return
+        end
+        run_metadata_request(_("Searching metadata…"), function()
+            local editions, err = require(provider.module).editions(credential, work)
+            if not editions and type(err) == "table" then err.provider = provider.id end
+            return editions and { editions = editions, work = work } or nil, err
+        end, function(result)
+            if type(result.work) == "table" then work = result.work end
+            use_editions(result.editions)
         end)
     end
 
-    local function show_work_picker(editor, draft, works, cover_only)
-        prepare_cover_previews(editor, works, function(ready)
-            local items = {}
-            for _i, work in ipairs(ready) do
-                items[#items + 1] = {
-                    text = work.title,
-                    secondary_text = work_secondary(work),
-                    image_file = work._cover_path,
-                    bold = work.exact_edition ~= nil,
-                    work = work,
-                }
-            end
-            local picker
+    local function work_picker_items(works)
+        local items = {}
+        for _i, work in ipairs(works) do
+            items[#items + 1] = {
+                text = work.title,
+                secondary_text = work_secondary(work),
+                image_file = work._cover_path,
+                bold = work.exact_edition ~= nil,
+                work = work,
+            }
+        end
+        return items
+    end
+
+    local function work_picker_title(remaining, total)
+        if remaining <= 0 then return _("Metadata results") end
+        return T(_("%1 · %2 / %3 still loading"),
+            _("Metadata results"), remaining, total)
+    end
+
+    local function show_work_picker(editor, draft, works, cover_only, title)
+        local picker
+        local function dismiss_loading()
+            if not picker then return end
+            local dismiss_callback = picker.dismiss_callback
+            picker.dismiss_callback = nil
+            if type(dismiss_callback) == "function" then dismiss_callback() end
+        end
+        prepare_cover_previews(works, function(ready)
+            local items = work_picker_items(ready)
             picker = require("common/ui/zen_menu_picker"){
-                title = _("Hardcover results"),
+                title = title or _("Metadata results"),
                 items = items,
                 rows_per_page = 5,
                 black_text = true,
                 title_action_icon = search_icon,
                 title_action_keep_open = true,
                 title_action_callback = function()
+                    dismiss_loading()
+                    picker:addItems({}, _("Metadata results"))
                     show_search_dialog(editor, draft, cover_only, function()
                         picker:onCancelOrClose()
                     end)
                 end,
                 back_hold_callback = function() return true end,
-                on_close = function() cleanup_cover_previews(works) end,
+                on_close = function()
+                    dismiss_loading()
+                    for _i, item in ipairs(items) do
+                        cleanup_cover_previews({ item.work })
+                    end
+                end,
                 on_select = function(item)
                     select_work(editor, draft, item.work, cover_only)
                 end,
             }
-        end, false, _("Searching Hardcover…"))
+        end)
+        return picker
     end
 
     start_hardcover_search = function(editor, draft, query, cover_only, replace_callback)
-        local lookup_token = token()
-        if lookup_token == "" then
-            offer_token_settings(_("No Hardcover token is saved. Open metadata settings to add one?"))
+        local active, missing_credential, any_enabled = active_providers()
+        if #active == 0 then
+            offer_metadata_settings(not any_enabled
+                and _("No metadata providers are enabled. Open settings?")
+                or missing_credential
+                    and _("Enabled metadata providers need an API credential. Open settings?")
+                    or _("No metadata providers are available. Open settings?"))
             return
         end
         local auto_pick = metadata_config().hardcover_auto_match ~= false
@@ -514,24 +644,136 @@ local function apply_metadata_editor()
                 limit = query.limit,
             }
         end
-        logger.dbg("Hardcover search requested cover_only=", tostring(cover_only == true),
+        logger.dbg("Metadata search requested providers=", #active,
+            " cover_only=", tostring(cover_only == true),
             " auto_pick=", tostring(auto_pick),
             " isbn=", trim(query.isbn) ~= "" and "yes" or "no")
-        run_hardcover_request(_("Searching Hardcover…"), function()
-            return require("modules/filebrowser/metadata/hardcover")
-                .search(lookup_token, query)
+        if not auto_pick then
+            local Trapper = require("ui/trapper")
+            local function run()
+                local owns_notice = active_metadata_notice == nil
+                if owns_notice then
+                    active_metadata_notice = InfoMessage:new{ text = _("Searching metadata…") }
+                    UIManager:show(active_metadata_notice)
+                    if UIManager.forceRePaint then UIManager:forceRePaint() end
+                end
+                local function close_notice()
+                    if owns_notice and active_metadata_notice then
+                        UIManager:close(active_metadata_notice)
+                        active_metadata_notice = nil
+                        if UIManager.forceRePaint then UIManager:forceRePaint() end
+                    end
+                end
+
+                local picker, first_error
+                for provider_index, provider in ipairs(active) do
+                    local trap_widget = picker or active_metadata_notice
+                    local completed, found, err = Trapper:dismissableRunInSubprocess(
+                        function()
+                            return require(provider.module)
+                                .search(provider.credential, query)
+                        end,
+                        trap_widget
+                    )
+                    if trap_widget then trap_widget.dismiss_callback = nil end
+                    if not completed then
+                        close_notice()
+                        return
+                    end
+
+                    local had_picker = picker ~= nil
+                    if found then
+                        for _i, work in ipairs(found) do
+                            work._provider = provider.id
+                            if type(work.exact_edition) == "table" then
+                                work.exact_edition._provider = provider.id
+                            end
+                        end
+                    elseif type(err) == "table" and err.kind ~= "no_match"
+                            and not first_error then
+                        err.provider = provider.id
+                        first_error = err
+                    end
+
+                    local title = work_picker_title(#active - provider_index, #active)
+                    if had_picker then
+                        local added
+                        prepare_cover_previews(found or {}, function(ready)
+                            added = picker:addItems(work_picker_items(ready), title)
+                            if not added then cleanup_cover_previews(ready) end
+                        end, picker)
+                        if not added then
+                            return
+                        end
+                    elseif found and #found > 0 then
+                        if replace_callback then
+                            replace_callback()
+                            replace_callback = nil
+                        end
+                        if #active == 1 and found[1].exact_edition then
+                            select_work(editor, draft, found[1], cover_only, false)
+                            close_notice()
+                            return
+                        end
+                        picker = show_work_picker(
+                            editor, draft, found, cover_only, title)
+                        close_notice()
+                    end
+                end
+                close_notice()
+                if not picker then
+                    show_metadata_error(first_error or { kind = "no_match" })
+                end
+            end
+            if Trapper:isWrapped() then return run() end
+            return Trapper:wrap(run)
+        end
+
+        run_metadata_request(_("Searching metadata…"), function()
+            local works, first_error = {}, nil
+            for _i, provider in ipairs(active) do
+                local found, err = require(provider.module)
+                    .search(provider.credential, query)
+                if found then
+                    local found_exact = false
+                    for _j, work in ipairs(found) do
+                        work._provider = provider.id
+                        if type(work.exact_edition) == "table" then
+                            work.exact_edition._provider = provider.id
+                            found_exact = true
+                        end
+                        works[#works + 1] = work
+                    end
+                    if found_exact then break end
+                elseif type(err) == "table" and err.kind ~= "no_match"
+                        and not first_error then
+                    err.provider = provider.id
+                    first_error = err
+                end
+            end
+            if #works == 0 then
+                return nil, first_error or { kind = "no_match" }
+            end
+            return works
         end, function(works)
             if replace_callback then replace_callback() end
-            if works[1] and works[1].exact_edition then
+            if #active == 1 and works[1] and works[1].exact_edition then
                 select_work(editor, draft, works[1], cover_only, false)
-            elseif auto_pick then
-                if works[1] then
-                    select_work(editor, draft, works[1], cover_only, true)
-                else
-                    show_hardcover_error({ kind = "no_match" })
-                end
             else
-                show_work_picker(editor, draft, works, cover_only)
+                local selected
+                for _i, work in ipairs(works) do
+                    if work.exact_edition then
+                        selected = work
+                        break
+                    end
+                end
+                selected = selected or works[1]
+                if selected then
+                    select_work(editor, draft, selected, cover_only,
+                        selected.exact_edition == nil)
+                else
+                    show_metadata_error({ kind = "no_match" })
+                end
             end
         end)
     end
@@ -548,7 +790,7 @@ local function apply_metadata_editor()
             local fields = dialog:getFields()
             local title = trim(fields[1])
             if title == "" then
-                editor:showError(_("Enter a title to search Hardcover."))
+                editor:showError(_("Enter a title to search metadata."))
                 return
             end
             local query = { title = title, author = trim(fields[2]) }
@@ -559,7 +801,7 @@ local function apply_metadata_editor()
             end)
         end
         dialog = MultiInputDialog:new{
-            title = _("Search Hardcover"),
+            title = _("Search metadata"),
             fields = {
                 { description = _("Title"), text = draft.title },
                 { description = _("Author"), text = first_author(draft) },
@@ -636,7 +878,7 @@ local function apply_metadata_editor()
                             filled = false,
                         },
                         {
-                            text = _("Find on Hardcover"),
+                            text = _("Find metadata"),
                             action = "hardcover",
                             keep_open = true,
                             filled = true,

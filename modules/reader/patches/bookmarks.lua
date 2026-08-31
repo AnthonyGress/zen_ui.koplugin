@@ -19,7 +19,7 @@ local function apply_bookmarks()
         return utils.resolveLocalIcon(_stock_icons_dir, name)
     end
 
-    local bookmark_icon = _icons_dir and utils.resolveLocalIcon(_icons_dir, "bookmark")
+    local bookmark_icon = _icons_dir and utils.resolveIcon(_icons_dir, "bookmark")
     if bookmark_icon then
         local ReaderDogear = require("apps/reader/modules/readerdogear")
         local function use_bookmark_icon(dogear)

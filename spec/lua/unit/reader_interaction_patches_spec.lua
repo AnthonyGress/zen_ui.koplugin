@@ -4,9 +4,12 @@ describe("reader interaction patches", function()
         require(name)()
     end
 
-    local function install_bookmark_button_stub()
+    local function install_bookmark_button_stub(bookmark_icon)
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(_dir, name) return "/icons/" .. name .. ".svg" end,
+            resolveIcon = function(_dir, name)
+                return name == "bookmark" and bookmark_icon or "/icons/" .. name .. ".svg"
+            end,
         })
         ZenSpec.replace("apps/reader/modules/readerdogear", {
             setupDogear = function() end,
@@ -424,8 +427,8 @@ describe("reader interaction patches", function()
         assert.are.equal(2, update_calls)
     end)
 
-    it("uses the bundled bookmark icon for the reader bookmark indicator", function()
-        install_bookmark_button_stub()
+    it("uses the resolved bookmark icon for the reader bookmark indicator", function()
+        install_bookmark_button_stub("/custom/bookmark.svg")
         local free_calls = 0
         local function stock_icon()
             return {
@@ -464,7 +467,7 @@ describe("reader interaction patches", function()
 
         apply_patch("modules/reader/patches/bookmarks")
 
-        assert.are.equal("/icons/bookmark.svg", current_dogear.icon.file)
+        assert.are.equal("/custom/bookmark.svg", current_dogear.icon.file)
         assert.is_nil(current_dogear.icon.icon)
         assert.are.equal(0, current_dogear.icon.rotation_angle)
         assert.are.equal(592, current_dogear[1].dimen.w)
@@ -472,7 +475,7 @@ describe("reader interaction patches", function()
         local new_dogear = {}
         ReaderDogear.setupDogear(new_dogear, 28)
         assert.are.equal(28, new_dogear.dogear_size)
-        assert.are.equal("/icons/bookmark.svg", new_dogear.icon.file)
+        assert.are.equal("/custom/bookmark.svg", new_dogear.icon.file)
         assert.is_nil(new_dogear.icon.icon)
         assert.are.equal(0, new_dogear.icon.rotation_angle)
         assert.are.equal(592, new_dogear[1].dimen.w)

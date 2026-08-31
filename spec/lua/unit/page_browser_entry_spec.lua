@@ -85,6 +85,28 @@ describe("page browser entry", function()
         ZenSpec.unload("common/reader_font")
     end)
 
+    it("caches Android color detection before thumbnail workers fork", function()
+        local PageBrowserWidget = {}
+        install_widget_dependencies(PageBrowserWidget)
+        ZenSpec.replace("apps/reader/modules/readermenu", {})
+        ZenSpec.replace("apps/reader/modules/readerconfig", {})
+
+        local Device = require("device")
+        local color_checks = 0
+        Device.isAndroid = function() return true end
+        Device.hasColorScreen = function()
+            color_checks = color_checks + 1
+            return true
+        end
+
+        require("modules/reader/patches/page_browser")()
+
+        expect(color_checks == 1)
+        expect(Device:hasColorScreen() == true)
+        expect(Device:hasColorScreen() == true)
+        expect(color_checks == 1)
+    end)
+
     it("registers the bottom gesture and opens the patched browser only when enabled", function()
         local stock_listener_calls = 0
         local ReaderMenu = {

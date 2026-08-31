@@ -46,22 +46,9 @@ local function showMenuPicker(opts)
     local pad      = Size.padding.default
     local span     = Size.span.vertical_default
     local row_pad  = Screen:scaleBySize(12)
-    local has_secondary = false
-    local has_images = false
-    for _i, item in ipairs(items) do
-        if type(item.secondary_text) == "string" and item.secondary_text ~= "" then
-            has_secondary = true
-        end
-        if type(item.image_file) == "string" and item.image_file ~= "" then
-            has_images = true
-        end
-    end
-    local base_row_h = Screen:scaleBySize((has_secondary or has_images) and 64 or 48)
-    local row_h    = base_row_h
-    local row_face = Font:getFace("cfont", has_secondary and 21 or 24)
-    local secondary_face = has_secondary and Font:getFace("smallinfofont", 16) or nil
-    local image_h, image_w
-    local image_gap = has_images and Screen:scaleBySize(10) or 0
+    local has_secondary, has_images
+    local base_row_h, row_h, row_face, secondary_face
+    local image_h, image_w, image_gap
     local indent_step = Screen:scaleBySize(16)
     local footer_button_h = has_footer_buttons and Screen:scaleBySize(32) or 0
     local footer_gap = has_footer_buttons and Screen:scaleBySize(6) or 0
@@ -102,6 +89,21 @@ local function showMenuPicker(opts)
     local cur_page = 1
 
     local function updateGeometry()
+        has_secondary = false
+        has_images = false
+        for _i, item in ipairs(items) do
+            if type(item.secondary_text) == "string" and item.secondary_text ~= "" then
+                has_secondary = true
+            end
+            if type(item.image_file) == "string" and item.image_file ~= "" then
+                has_images = true
+            end
+        end
+        base_row_h = Screen:scaleBySize((has_secondary or has_images) and 64 or 48)
+        row_h = base_row_h
+        row_face = Font:getFace("cfont", has_secondary and 21 or 24)
+        secondary_face = has_secondary and Font:getFace("smallinfofont", 16) or nil
+        image_gap = has_images and Screen:scaleBySize(10) or 0
         sw, sh = Screen:getWidth(), Screen:getHeight()
         content_w = sw - 2 * pad
         title_text_w = sw - title_x - TitleStyle.RIGHT_PADDING
@@ -512,6 +514,22 @@ local function showMenuPicker(opts)
 
     function Picker:onCancelOrClose()
         closeDialog()
+        return true
+    end
+
+    function Picker:addItems(batch, next_title)
+        if closed or type(batch) ~= "table" then return false end
+        for _i, item in ipairs(batch) do items[#items + 1] = item end
+        updateGeometry()
+        if selected_idx and not back_focused and not title_action_focused
+                and not footer_selected_idx then
+            cur_page = math.ceil(selected_idx / rows_per_page)
+        end
+        if next_title ~= nil then title_tw:setText(next_title) end
+        title_tw:setMaxWidth(title_text_w)
+        title_text_h = title_tw:getSize().h
+        row_truncated = {}
+        UIManager:setDirty(self, "ui")
         return true
     end
 

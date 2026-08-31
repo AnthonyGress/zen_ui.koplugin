@@ -388,20 +388,6 @@ function MetadataEditor:_buildItems()
         _metadata_key = "description",
         callback = function() self:_editField("description") end,
     }
-    if self.can_restore then
-        items[#items + 1] = {
-            text = _("Restore previous EPUB"),
-            _zen_display_text = _("Restore previous EPUB"),
-            _zen_settings_row = true,
-            _zen_settings_breadcrumb = _("Replace this book with its last backup"),
-            _zen_primary_bold = true,
-            _zen_value_black = true,
-            _zen_has_submenu = true,
-            _zen_caret_icon = caret,
-            _metadata_restore = true,
-            callback = function() self:_requestRestore() end,
-        }
-    end
     return items
 end
 
@@ -636,6 +622,11 @@ function MetadataEditor:_syncTitleAction()
     if self:isDirty() and not self.save_pending then
         action = {
             text = icons.save .. "  " .. _("Save"),
+            zen_button = true,
+            filled = true,
+            height = Screen:scaleBySize(36),
+            padding_h = Screen:scaleBySize(16),
+            text_font_size = 22,
             callback = function() return self:_save(false) end,
         }
     end
@@ -645,16 +636,19 @@ end
 
 function MetadataEditor:_hardcoverText()
     if self.edition_summary ~= "" then
-        return T(_("Hardcover · %1"), self.edition_summary)
+        local provider = trim(self.edition_provider)
+        if provider == "" then provider = _("Hardcover") end
+        return T(_("%1 · %2"), provider, self.edition_summary)
     end
-    return _("Find on Hardcover")
+    return _("Find metadata")
 end
 
 function MetadataEditor:_makeMetadataHeader()
     local pad = Screen:scaleBySize(5)
     local gap = Screen:scaleBySize(6)
+    local button_count = self.can_restore and 3 or 2
     local button_w = math.min(Screen:scaleBySize(210),
-        math.floor((self.width - 2 * pad - gap) / 2))
+        math.floor((self.width - 2 * pad - gap * (button_count - 1)) / button_count))
     local button_h = Screen:scaleBySize(32)
     local radius = Screen:scaleBySize(8)
     self._open_with_button = zen_button({
@@ -683,13 +677,34 @@ function MetadataEditor:_makeMetadataHeader()
         show_parent = self,
         callback = function() return self:_openHardcover() end,
     }, true, radius)
-    self._action_buttons = BD.mirroredUILayout()
-        and { self._hardcover_button, self._open_with_button }
-        or { self._open_with_button, self._hardcover_button }
+    self._restore_button = self.can_restore and zen_button({
+        text = _("Restore"),
+        width = button_w,
+        height = button_h,
+        bordersize = 0,
+        padding_h = Screen:scaleBySize(6),
+        padding_v = 0,
+        text_font_size = 16,
+        avoid_text_truncation = false,
+        enabled = type(self.on_restore) == "function",
+        show_parent = self,
+        callback = function() return self:_requestRestore() end,
+    }, false, radius) or nil
+    local action_buttons = { self._open_with_button, self._hardcover_button }
+    if self._restore_button then action_buttons[#action_buttons + 1] = self._restore_button end
+    self._action_buttons = {}
+    if BD.mirroredUILayout() then
+        for index = #action_buttons, 1, -1 do
+            self._action_buttons[#self._action_buttons + 1] = action_buttons[index]
+        end
+    else
+        self._action_buttons = action_buttons
+    end
     local row = HorizontalGroup:new{ align = "center" }
-    table.insert(row, self._action_buttons[1])
-    table.insert(row, HorizontalSpan:new{ width = gap })
-    table.insert(row, self._action_buttons[2])
+    for index, button in ipairs(self._action_buttons) do
+        if index > 1 then table.insert(row, HorizontalSpan:new{ width = gap }) end
+        table.insert(row, button)
+    end
     local height = self._hardcover_button:getSize().h + 2 * pad
     return FrameContainer:new{
         width = self.width,
@@ -788,6 +803,7 @@ function MetadataEditor:init()
         if self.field_sources[key] == nil then self.field_sources[key] = "original" end
     end
     self.edition_summary = trim(self.edition_summary)
+    self.edition_provider = trim(self.edition_provider)
     self.item_table = self:_buildItems()
     self.custom_title_bar = self:_makeTitleBar()
     self._metadata_header = self:_makeMetadataHeader()
@@ -808,7 +824,7 @@ end
 function MetadataEditor:_fieldDialogButtons(close, save)
     return {{
         {
-            text = _("Find on Hardcover"),
+            text = _("Find metadata"),
             enabled = type(self.on_hardcover) == "function",
             callback = function()
                 close()
@@ -1009,8 +1025,10 @@ function MetadataEditor:_editField(key)
     dialog:onShowKeyboard()
 end
 
-function MetadataEditor:applyHardcover(metadata, summary)
+function MetadataEditor:applyHardcover(metadata, summary, source, source_label)
     local incoming = normalize_draft(metadata)
+    source = trim(source)
+    if source == "" then source = "hardcover" end
     self.field_sources = self.field_sources or {}
     local applied, skipped = 0, 0
     for _i, key in ipairs(FIELD_ORDER) do
@@ -1022,17 +1040,22 @@ function MetadataEditor:applyHardcover(metadata, summary)
                 if incoming.series_index ~= "" then
                     self.draft.series_index = incoming.series_index
                 end
-                self.field_sources[key] = "hardcover"
+                self.field_sources[key] = source
                 applied = applied + 1
             else
                 self.draft[key] = copy_value(incoming[key])
-                self.field_sources[key] = "hardcover"
+                self.field_sources[key] = source
                 applied = applied + 1
             end
         end
     end
     self.edition_summary = trim(summary)
-    logger.dbg("Hardcover draft merged applied=", applied, " retained=", skipped)
+    self.edition_provider = trim(source_label)
+    if self.edition_provider == "" and source == "hardcover" then
+        self.edition_provider = _("Hardcover")
+    end
+    logger.dbg("Provider draft merged source=", source,
+        " applied=", applied, " retained=", skipped)
     self:_refresh()
     return skipped
 end
@@ -1163,8 +1186,9 @@ function MetadataEditor:setDraft(metadata)
     self:_refresh()
 end
 
-function MetadataEditor:setEditionSummary(summary)
+function MetadataEditor:setEditionSummary(summary, provider)
     self.edition_summary = trim(summary)
+    if provider ~= nil then self.edition_provider = trim(provider) end
     self:_updateMetadataHeader()
     UIManager:setDirty(self, "ui")
 end

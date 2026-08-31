@@ -206,17 +206,51 @@ function ZenSettingsTitleBar:init()
         if self.action.text then
             self.action_button = Button:new{
                 text = self.action.text,
+                height = self.action.height,
                 bordersize = 0,
                 radius = 0,
-                padding_h = TitleStyle.ACTION_PADDING_H or Size.padding.default,
+                padding_h = self.action.padding_h
+                    or TitleStyle.ACTION_PADDING_H or Size.padding.default,
                 padding_v = Size.padding.small,
                 text_font_face = "smallinfofont",
-                text_font_size = TitleStyle.ACTION_FONT_SIZE or 18,
+                text_font_size = self.action.text_font_size
+                    or TitleStyle.ACTION_FONT_SIZE or 18,
                 text_font_bold = true,
                 allow_flash = false,
                 show_parent = self.show_parent,
                 callback = self.action.callback,
             }
+            if self.action.zen_button then
+                local ZenButton = require("common/ui/zen_button")
+                local radius = self.action.radius or Screen:scaleBySize(8)
+                local border = Screen:scaleBySize(1)
+                self.action_button._zen_filled = self.action.filled == true
+                self.action_button.paintTo = function(button, bb, x, y)
+                    button.dimen.x, button.dimen.y = x, y
+                    local filled = button._zen_filled ~= (button._zen_focused == true)
+                    local max_text_width = math.max(1,
+                        button.dimen.w - 2 * (button.padding_h or 0))
+                    if filled then
+                        ZenButton.paintFilled(bb, x, y, button.dimen.w, button.dimen.h,
+                            button.text, button.text_font_size, radius, max_text_width)
+                    else
+                        ZenButton.paintOutlined(bb, x, y, button.dimen.w, button.dimen.h,
+                            button.text, button.text_font_size, radius, border, max_text_width)
+                    end
+                end
+                self.action_button.onFocus = function(button)
+                    button._zen_focused = true
+                    UIManager:setDirty(button.show_parent, "fast", button.dimen)
+                    return true
+                end
+                self.action_button.onUnfocus = function(button)
+                    button._zen_focused = false
+                    UIManager:setDirty(button.show_parent, "fast", button.dimen)
+                    return true
+                end
+                self.action_button._doFeedbackHighlight = function() end
+                self.action_button._undoFeedbackHighlight = function() end
+            end
         else
             self.action_button = ZenIconButton:new{
                 file = self.action.file,

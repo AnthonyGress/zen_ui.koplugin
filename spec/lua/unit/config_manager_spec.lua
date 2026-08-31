@@ -4,6 +4,7 @@ describe("config manager folder-path migration", function()
     local stores
     local written_settings
     local write_error
+    local google_key_ensures
 
     local function reload_manager(language)
         _G.G_reader_settings = ZenSpec.memorySettings(language and { language = language } or {})
@@ -16,6 +17,7 @@ describe("config manager folder-path migration", function()
         settings_file = { data = {}, flush = function() end }
         written_settings = nil
         write_error = nil
+        google_key_ensures = 0
         stores = {
             home = { settings = {}, presets = {} },
             reader = { settings = {}, presets = {} },
@@ -46,6 +48,12 @@ describe("config manager folder-path migration", function()
         ZenSpec.replace("config/hardcover_token", {
             ensureFile = function() return false end,
         })
+        ZenSpec.replace("config/google_books_key", {
+            ensureFile = function()
+                google_key_ensures = google_key_ensures + 1
+                return false
+            end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
             DEFAULT_PRESET_NAME = "Zen Default",
             BOOKSHELF_PRESET_NAME = "Bookshelf",
@@ -75,8 +83,12 @@ describe("config manager folder-path migration", function()
         assert.are.equal(18, config.page_browser.bookmarks_font_size)
         assert.are.same({}, config.folder_cover_paths)
         assert.is_true(config.search.substring)
+        assert.is_true(config.metadata.hardcover_enabled)
+        assert.is_true(config.metadata.google_books_enabled)
+        assert.is_true(config.metadata.open_library_enabled)
         assert.is_true(config.metadata.hardcover_auto_match)
         assert.is_false(config.metadata.epub_backup)
+        assert.are.equal(1, google_key_ensures)
         assert.is_false(config._meta.quickstart_shown_for_version)
     end)
 

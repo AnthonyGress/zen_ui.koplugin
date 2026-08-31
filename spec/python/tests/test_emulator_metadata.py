@@ -48,17 +48,19 @@ def test_metadata_editor_visual_fixtures() -> None:
             assert portrait_state["dirty"] is True
             assert portrait_state["title_action"].endswith("Save")
             assert portrait_state["title_action"] != "Save"
+            assert portrait_state["title_action_zen"] is True
+            assert portrait_state["title_action_font_size"] == 22
             assert portrait_state["title"] == "The Strength of the Few"
             assert portrait_state["edition_summary"] == "Paperback, 2024 · Orbit"
             assert portrait_state["open_with_text"] == "Open with…"
+            assert portrait_state["restore_text"] == "Restore"
             assert portrait_state["hardcover_filled"] is True
             assert portrait_state["has_pending_cover"] is True
             assert portrait_state["width"] < portrait_state["height"]
-            assert portrait_state["page_count"] == 2
+            assert portrait_state["page_count"] == 1
             assert portrait_state["fields"] == [
                 "Book details",
                 "Description",
-                "Restore previous EPUB",
             ]
             _capture(driver, "metadata-editor-portrait.png")
 
@@ -70,7 +72,7 @@ def test_metadata_editor_visual_fixtures() -> None:
             assert landscape_state["dirty"] is True
             assert landscape_state["title_action"].endswith("Save")
             assert landscape_state["width"] > landscape_state["height"]
-            assert landscape_state["page_count"] == 2
+            assert landscape_state["page_count"] == 1
             _capture(driver, "metadata-editor-landscape.png")
 
             cover = driver.command("show_metadata_cover_fixture")
@@ -80,7 +82,7 @@ def test_metadata_editor_visual_fixtures() -> None:
             picker = driver.command("show_metadata_picker_fixture")
             assert picker["ok"] is True, picker
             assert picker["width"] < picker["height"]
-            assert picker["picker"]["title"] == "Choose a Hardcover edition"
+            assert picker["picker"]["title"] == "Choose an edition"
             assert picker["picker"]["labels"][1] == "Hardcover, 2025"
             assert "Orbit" in picker["picker"]["secondary_labels"][1]
             _capture(driver, "metadata-hardcover-picker.png")

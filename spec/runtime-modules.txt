@@ -80,7 +80,9 @@ common/widget_resources.lua|unit
 common/zen_logger.lua|unit
 common/zen_screen.lua|unit
 config/changelog.lua|unit
+config/credential_file.lua|unit
 config/defaults.lua|unit
+config/google_books_key.lua|unit
 config/hardcover_token.lua|unit
 config/manager.lua|unit
 config/preset_store.lua|unit
@@ -88,7 +90,11 @@ config/screensaver_presets.lua|unit
 modules/filebrowser/filebrowser.lua|integration
 modules/filebrowser/folder_cover.lua|unit
 modules/filebrowser/metadata/epub.lua|unit
+modules/filebrowser/metadata/google_books.lua|unit
 modules/filebrowser/metadata/hardcover.lua|unit
+modules/filebrowser/metadata/http.lua|unit
+modules/filebrowser/metadata/isbn.lua|unit
+modules/filebrowser/metadata/open_library.lua|unit
 modules/filebrowser/metadata/service.lua|unit
 modules/filebrowser/metadata/vendor/slaxdom.lua|unit
 modules/filebrowser/metadata/vendor/slaxml.lua|unit

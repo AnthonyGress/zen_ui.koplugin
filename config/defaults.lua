@@ -87,6 +87,9 @@ local defaults = {
         substring = true,
     },
     metadata = {
+        hardcover_enabled = true,
+        google_books_enabled = true,
+        open_library_enabled = true,
         hardcover_auto_match = true,
         epub_backup = false,
     },

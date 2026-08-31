@@ -178,6 +178,7 @@ describe("Zen menu picker", function()
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_, values)
                 values.getSize = function() return { w = 100, h = 20 } end
+                values.setText = function(self, text) self.text = text end
                 values.setMaxWidth = function(self, width) self.max_width = width end
                 values.isTruncated = function(self) return self.text == truncated_text end
                 values.paintTo = function(self, _bb, x) self.paint_x = x end
@@ -358,7 +359,7 @@ describe("Zen menu picker", function()
         require("common/ui/zen_menu_picker"){
             footer_buttons = {
                 { text = "Choose image", keep_open = true },
-                { text = "Find on Hardcover", keep_open = true, filled = true },
+                { text = "Find metadata", keep_open = true, filled = true },
             },
             on_select = function(item) selected = item.text end,
         }
@@ -368,7 +369,7 @@ describe("Zen menu picker", function()
         assert.is_true(shown.touch_zones[1].handler({ pos = { x = 100, y = 770 } }))
         assert.are.equal("Choose image", selected)
         assert.is_true(shown.touch_zones[1].handler({ pos = { x = 400, y = 770 } }))
-        assert.are.equal("Find on Hardcover", selected)
+        assert.are.equal("Find metadata", selected)
         assert.are.equal(0, closed)
     end)
 
@@ -382,7 +383,7 @@ describe("Zen menu picker", function()
             footer_buttons_under_header = true,
             footer_buttons = {
                 { text = "Choose image", keep_open = true },
-                { text = "Find on Hardcover", keep_open = true, filled = true },
+                { text = "Find metadata", keep_open = true, filled = true },
                 { text = "Clear" },
             },
             on_select = function(item) selected = item.text end,
@@ -398,7 +399,7 @@ describe("Zen menu picker", function()
         assert.is_true(shown.touch_zones[1].handler({ pos = { x = 400, y = 170 } }))
         assert.are.equal("Choose image", selected)
         assert.is_true(shown.touch_zones[1].handler({ pos = { x = 400, y = 205 } }))
-        assert.are.equal("Find on Hardcover", selected)
+        assert.are.equal("Find metadata", selected)
         assert.is_true(shown.touch_zones[1].handler({ pos = { x = 400, y = 245 } }))
         assert.are.equal("Clear", selected)
     end)
@@ -464,6 +465,30 @@ describe("Zen menu picker", function()
         shown:onMenuPickerPage(1)
         shown:paintTo({ paintRect = function() end }, 0, 0)
         assert.are.equal(2, pager_page)
+    end)
+
+    it("appends rows and updates a live title only while open", function()
+        local picker = require("common/ui/zen_menu_picker"){
+            title = "Metadata results · 2 / 3 still loading",
+            items = { { text = "First", secondary_text = "Hardcover" } },
+            rows_per_page = 5,
+        }
+        local batch = {}
+        for item_index = 2, 6 do
+            batch[#batch + 1] = {
+                text = "Result " .. tostring(item_index),
+                secondary_text = "Provider",
+            }
+        end
+
+        assert.is_true(picker:addItems(batch, "Metadata results · 1 / 3 still loading"))
+        assert.are.equal("Metadata results · 1 / 3 still loading", text_widgets[1].text)
+        picker:onMenuPickerPage(1)
+        picker:paintTo({ paintRect = function() end }, 0, 0)
+        assert.are.equal(2, pager_page)
+        picker:onCancelOrClose()
+        assert.is_false(picker:addItems({}, "Late update"))
+        assert.are.equal("Metadata results · 1 / 3 still loading", text_widgets[1].text)
     end)
 
     it("expands requested cover rows to fill the page", function()

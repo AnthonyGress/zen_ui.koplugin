@@ -1,31 +1,22 @@
 local json = require("json")
 local logger = require("common/zen_logger").new("hardcover")
+local Http = require("modules/filebrowser/metadata/http")
+local isbn_value = require("modules/filebrowser/metadata/isbn").normalize
 
 local M = {}
 
 local API_URL = "https://api.hardcover.app/v1/graphql"
 local API_HOST = "api.hardcover.app"
 local COVER_HOST = "assets.hardcover.app"
-local USER_AGENT = "ZenOS metadata (https://github.com/xZenLabs/zen-os)"
 local SEARCH_LIMIT = 10
 local EDITION_LIMIT = 30
 local MAX_QUERY_LENGTH = 512
-local BLOCK_TIMEOUT = 6
-local TOTAL_TIMEOUT = 12
-local MAX_COVER_BYTES = 12 * 1024 * 1024
-local MODULE_CA_BUNDLE
-do
-    local source = (debug.getinfo(1, "S").source or "")
-    if source:sub(1, 1) == "@" then
-        local directory = source:sub(2):match("^(.*[/\\])hardcover%.lua$")
-        if directory then MODULE_CA_BUNDLE = directory .. "ca-bundle.crt" end
-    end
-end
 
 local SEARCH_QUERY = [[
 query ZenMetadataSearch($query: String!, $page: Int!, $perPage: Int!) {
   search(query: $query, query_type: "Book", page: $page, per_page: $perPage) {
     ids
+    results
   }
 }
 ]]
@@ -58,22 +49,31 @@ query ZenMetadataISBN($isbn: String!, $limit: Int!) {
     image { url width height }
     language { code2 code3 language }
     publisher { name }
+    book {
+      id
+      title
+      release_year
+      contributions {
+        contribution
+        author { name }
+      }
+      book_series(order_by: { featured: desc }, limit: 1) {
+        featured
+        position
+        series { name }
+      }
+    }
   }
 }
 ]]
 
-local WORKS_QUERY = [[
-query ZenMetadataWorks($ids: [Int!]!) {
-  books(where: { id: { _in: $ids } }) {
+local EDITIONS_QUERY = [[
+query ZenMetadataEditions($bookId: Int!, $limit: Int!) {
+  book: books_by_pk(id: $bookId) {
     id
     title
     description
     release_year
-    pages
-    editions_count
-    users_count
-    cached_image
-    image { url width height }
     cached_tags(path: "Genre")
     contributions {
       contribution
@@ -85,11 +85,6 @@ query ZenMetadataWorks($ids: [Int!]!) {
       series { name }
     }
   }
-}
-]]
-
-local EDITIONS_QUERY = [[
-query ZenMetadataEditions($bookId: Int!, $limit: Int!) {
   editions(
     where: {
       book_id: { _eq: $bookId }
@@ -117,29 +112,13 @@ query ZenMetadataEditions($bookId: Int!, $limit: Int!) {
 }
 ]]
 
-local ERROR_KINDS = {
-    offline = true,
-    unauthorized = true,
-    forbidden = true,
-    rate_limited = true,
-    server = true,
-    malformed = true,
-    no_match = true,
-    network = true,
-}
-
 local READING_FORMATS = {
     [1] = "Physical Book",
     [2] = "Audiobook",
     [4] = "E-Book",
 }
 
-local function failure(kind, status, retry_after)
-    local err = { kind = kind }
-    if status then err.status = status end
-    if retry_after then err.retry_after = retry_after end
-    return err
-end
+local failure = Http.failure
 
 local function trim(value)
     if type(value) ~= "string" then return "" end
@@ -155,180 +134,22 @@ local function token_value(token)
     return token
 end
 
-local function header_value(headers, wanted)
-    if type(headers) ~= "table" then return nil end
-    wanted = wanted:lower()
-    for key, value in pairs(headers) do
-        if type(key) == "string" and key:lower() == wanted then return value end
-    end
-end
-
-local function ca_bundle(https)
-    local candidates = {
-        MODULE_CA_BUNDLE or "",
-        "data/ca-bundle.crt",
-        "./data/ca-bundle.crt",
-        "/etc/ssl/certs/ca-certificates.crt",
-        "/etc/ssl/cert.pem",
-        "/etc/pki/tls/certs/ca-bundle.crt",
-    }
-    local info = type(https.request) == "function"
-        and debug.getinfo(https.request, "S") or nil
-    local source = info and info.source or ""
-    if source:sub(1, 1) == "@" then
-        local root = source:sub(2):match("^(.*[/\\])common[/\\]ssl[/\\]https%.lua$")
-        if root then table.insert(candidates, 1, root .. "data/ca-bundle.crt") end
-    end
-    local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
-    if not ok_lfs then return nil end
-    for _i, path in ipairs(candidates) do
-        if lfs.attributes(path, "mode") == "file" then return path end
-    end
-end
-
-local function hostname_matches(pattern, hostname)
-    if type(pattern) ~= "string" or pattern:find("%z") then return false end
-    pattern = pattern:lower()
-    hostname = hostname:lower()
-    if pattern == hostname then return true end
-    if pattern:sub(1, 2) ~= "*." then return false end
-    local suffix = pattern:sub(2)
-    if hostname:sub(-#suffix) ~= suffix then return false end
-    local label = hostname:sub(1, #hostname - #suffix)
-    return label ~= "" and not label:find(".", 1, true)
-end
-
-local function certificate_matches(certificate, hostname)
-    if type(certificate) ~= "userdata" and type(certificate) ~= "table" then return false end
-    local ok, extensions = pcall(certificate.extensions, certificate)
-    if not ok or type(extensions) ~= "table" then return false end
-    local function find_dns(value)
-        if type(value) ~= "table" then return false end
-        for key, child in pairs(value) do
-            if key == "dNSName" and type(child) == "table" then
-                for _i, name in ipairs(child) do
-                    if hostname_matches(name, hostname) then return true end
-                end
-            elseif type(child) == "table" and find_dns(child) then
-                return true
-            end
-        end
-        return false
-    end
-    return find_dns(extensions)
-end
-
-local function verified_create(https, cafile, expected_host)
-    local base_create = https.tcp({
-        protocol = "any",
-        options = { "all", "no_sslv2", "no_sslv3", "no_tlsv1" },
-        verify = { "peer", "fail_if_no_peer_cert" },
-        cafile = cafile,
-    })
-    if type(base_create) ~= "function" then return nil end
-    return function()
-        local connection = base_create()
-        if type(connection) ~= "table" or type(connection.connect) ~= "function" then
-            return connection
-        end
-        local connect = connection.connect
-        function connection:connect(host, port)
-            local connected, err = connect(self, host, port)
-            if not connected then return nil, err end
-            local certificate = self.sock and self.sock:getpeercertificate()
-            if host ~= expected_host or not certificate_matches(certificate, host) then
-                pcall(self.close, self)
-                return nil, "TLS hostname verification failed"
-            end
-            return connected
-        end
-        return connection
-    end
-end
-
 local function default_transport(token, query, variables)
-    local ok_network, NetworkManager = pcall(require, "ui/network/manager")
-    if ok_network and NetworkManager and type(NetworkManager.isConnected) == "function" then
-        local ok_connected, connected = pcall(NetworkManager.isConnected, NetworkManager)
-        if ok_connected and not connected then return nil, failure("offline") end
-    end
-
-    local ok_https, https = pcall(require, "ssl.https")
-    local ok_http, http = pcall(require, "socket.http")
-    local ok_ltn12, ltn12 = pcall(require, "ltn12")
-    local ok_socketutil, socketutil = pcall(require, "socketutil")
-    if not ok_https or not ok_http or not ok_ltn12 or not ok_socketutil
-            or type(https.tcp) ~= "function"
-            or type(http.request) ~= "function"
-            or type(ltn12.source) ~= "table"
-            or type(ltn12.source.string) ~= "function"
-            or type(socketutil.set_timeout) ~= "function"
-            or type(socketutil.reset_timeout) ~= "function"
-            or type(socketutil.table_sink) ~= "function" then
-        logger.warn("API transport unavailable ssl=", tostring(ok_https),
-            " http=", tostring(ok_http), " ltn12=", tostring(ok_ltn12),
-            " socketutil=", tostring(ok_socketutil))
-        return nil, failure("network")
-    end
-
     local ok_payload, payload = pcall(json.encode, {
         query = query,
         variables = variables,
     })
     if not ok_payload then return nil, failure("malformed") end
-    local cafile = ca_bundle(https)
-    local create = cafile and verified_create(https, cafile, API_HOST)
-    if not create then
-        logger.warn("API TLS setup failed ca_bundle=", tostring(cafile))
-        return nil, failure("network")
-    end
-    logger.dbg("API request start payload_bytes=", #payload,
-        " ca_bundle=", cafile)
-
-    local chunks = {}
-    local ok_source, source = pcall(ltn12.source.string, payload)
-    if not ok_source then
-        logger.warn("API request source setup failed")
-        return nil, failure("network")
-    end
-    local ok_timeout = pcall(socketutil.set_timeout, socketutil, BLOCK_TIMEOUT, TOTAL_TIMEOUT)
-    if not ok_timeout then
-        logger.warn("API timeout setup failed")
-        return nil, failure("network")
-    end
-    local ok_sink, sink = pcall(socketutil.table_sink, chunks)
-    if not ok_sink then
-        logger.warn("API response sink setup failed")
-        pcall(socketutil.reset_timeout, socketutil)
-        return nil, failure("network")
-    end
-    local ok_request, request_result, status, headers = pcall(http.request, {
+    return Http.request{
         url = API_URL,
+        host = API_HOST,
         method = "POST",
-        redirect = false,
         headers = {
             ["Accept"] = "application/json",
             ["Authorization"] = "Bearer " .. token,
-            ["Content-Length"] = tostring(#payload),
             ["Content-Type"] = "application/json",
-            ["User-Agent"] = USER_AGENT,
         },
-        source = source,
-        sink = sink,
-        create = create,
-    })
-    pcall(socketutil.reset_timeout, socketutil)
-    if not ok_request or request_result == nil or tonumber(status) == nil then
-        logger.warn("API request failed error=",
-            tostring(ok_request and status or request_result))
-        return nil, failure("network")
-    end
-    logger.dbg("API response status=", tostring(status),
-        " body_bytes=", #table.concat(chunks))
-    return {
-        status = tonumber(status),
-        headers = headers,
-        body = table.concat(chunks),
+        body = payload,
     }
 end
 
@@ -343,112 +164,11 @@ local function image_url(row)
     return valid_cover_url(url) and url or ""
 end
 
-local function default_cover_transport(url, destination)
-    local ok_network, NetworkManager = pcall(require, "ui/network/manager")
-    if ok_network and NetworkManager and type(NetworkManager.isConnected) == "function" then
-        local ok_connected, connected = pcall(NetworkManager.isConnected, NetworkManager)
-        if ok_connected and not connected then return nil, failure("offline") end
-    end
-
-    local ok_https, https = pcall(require, "ssl.https")
-    local ok_http, http = pcall(require, "socket.http")
-    local ok_socketutil, socketutil = pcall(require, "socketutil")
-    if not ok_https or not ok_http or not ok_socketutil
-            or type(https.tcp) ~= "function"
-            or type(http.request) ~= "function"
-            or type(socketutil.set_timeout) ~= "function"
-            or type(socketutil.reset_timeout) ~= "function" then
-        logger.warn("cover transport unavailable ssl=", tostring(ok_https),
-            " http=", tostring(ok_http), " socketutil=", tostring(ok_socketutil))
-        return nil, failure("network")
-    end
-    local cafile = ca_bundle(https)
-    local create = cafile and verified_create(https, cafile, COVER_HOST)
-    if not create then
-        logger.warn("cover TLS setup failed ca_bundle=", tostring(cafile))
-        return nil, failure("network")
-    end
-    local file = io.open(destination, "wb")
-    if not file then
-        logger.warn("cover destination could not be opened")
-        return nil, failure("network")
-    end
-    local bytes, sink_error = 0, false
-    local function sink(chunk)
-        if not chunk then return 1 end
-        bytes = bytes + #chunk
-        if bytes > MAX_COVER_BYTES then
-            sink_error = true
-            return nil, "cover too large"
-        end
-        local written = file:write(chunk)
-        if not written then
-            sink_error = true
-            return nil, "cover write failed"
-        end
-        return 1
-    end
-    pcall(socketutil.set_timeout, socketutil, BLOCK_TIMEOUT, TOTAL_TIMEOUT)
-    local ok_request, result, status = pcall(http.request, {
-        url = url,
-        method = "GET",
-        redirect = false,
-        headers = {
-            ["Accept"] = "image/jpeg, image/png, image/webp, image/gif",
-            ["User-Agent"] = USER_AGENT,
-        },
-        sink = sink,
-        create = create,
-    })
-    pcall(socketutil.reset_timeout, socketutil)
-    pcall(file.close, file)
-    local response_status = status
-    status = tonumber(response_status)
-    if not ok_request or result == nil or status ~= 200
-            or sink_error or bytes == 0 then
-        logger.warn("cover request failed status=", tostring(status),
-            " error=", tostring(ok_request and response_status or result),
-            " bytes=", bytes)
-        os.remove(destination)
-        if status == 429 then return nil, failure("rate_limited", status) end
-        if status and status >= 500 then return nil, failure("server", status) end
-        return nil, failure("network", status)
-    end
-    logger.dbg("cover download complete bytes=", bytes)
-    return destination
-end
-
-local function transport_failure(err)
-    if type(err) ~= "table" or not ERROR_KINDS[err.kind] then
-        return failure("network")
-    end
-    return failure(err.kind, tonumber(err.status), tonumber(err.retry_after))
-end
-
 local function decode_response(response)
-    if type(response) ~= "table" then return nil, failure("malformed") end
-    local status = tonumber(response.status)
-    if status == 401 then return nil, failure("unauthorized", status) end
-    if status == 403 then return nil, failure("forbidden", status) end
-    if status == 429 then
-        local retry_after = tonumber(header_value(response.headers, "retry-after"))
-        return nil, failure("rate_limited", status, retry_after)
-    end
-    if status and status >= 500 and status <= 599 then
-        return nil, failure("server", status)
-    end
-    if status == 400 then return nil, failure("malformed", status) end
-    if not status or status < 200 or status > 299 then
-        return nil, failure("network", status)
-    end
-    if type(response.body) ~= "string" or response.body == "" then
-        return nil, failure("malformed", status)
-    end
-
-    local ok, decoded = pcall(json.decode, response.body)
-    if not ok or type(decoded) ~= "table"
-            or decoded.errors ~= nil or type(decoded.data) ~= "table" then
-        return nil, failure("malformed", status)
+    local decoded, err = Http.decodeJson(response)
+    if not decoded then return nil, err end
+    if decoded.errors ~= nil or type(decoded.data) ~= "table" then
+        return nil, failure("malformed", tonumber(response.status))
     end
     return decoded.data
 end
@@ -468,7 +188,7 @@ local function request(token, query, variables, transport)
         return nil, failure("network")
     end
     if not response then
-        err = transport_failure(err)
+        err = Http.transportFailure(err)
         logger.warn("transport failed operation=", operation,
             " kind=", err.kind, " status=", tostring(err.status))
         return nil, err
@@ -483,21 +203,9 @@ local function request(token, query, variables, transport)
     return data
 end
 
-local function unique_ids(values)
-    local ids, seen = {}, {}
-    if type(values) ~= "table" then return ids end
-    for _i, value in ipairs(values) do
-        local id = tonumber(type(value) == "table" and value.book_id or value)
-        if id and id > 0 and id == math.floor(id) and not seen[id] then
-            seen[id] = true
-            ids[#ids + 1] = id
-        end
-    end
-    return ids
-end
-
 local function string_list(values, field)
     local result, seen = {}, {}
+    if type(values) == "string" then values = { values } end
     if type(values) ~= "table" then return result end
     for _i, value in ipairs(values) do
         if type(value) == "table" then
@@ -559,51 +267,39 @@ local function normalize_work(row)
         genres = string_list(row.cached_tags, "tag"),
         description = trim(row.description),
         release_year = tonumber(row.release_year),
-        pages = tonumber(row.pages),
-        editions_count = tonumber(row.editions_count),
-        users_count = tonumber(row.users_count),
+    }
+end
+
+local function normalize_search_work(row, result_id)
+    if type(row) ~= "table" then return nil end
+    local id = tonumber(result_id)
+    local title = trim(row.title)
+    if not id or id <= 0 or title == "" then return nil end
+    local series_names = string_list(row.series_names)
+
+    return {
+        id = id,
+        title = title,
+        authors = string_list(row.author_names),
+        series_name = series_names[1],
+        series_index = tonumber(row.featured_series_position),
+        release_year = tonumber(row.release_year),
         image_url = image_url(row),
     }
 end
 
-local function hydrate_works(token, ids, transport)
-    local data, err = request(token, WORKS_QUERY, { ids = ids }, transport)
-    if not data then return nil, err end
-    if type(data.books) ~= "table" then return nil, failure("malformed") end
-
-    local by_id = {}
-    for _i, row in ipairs(data.books) do
-        local work = normalize_work(row)
-        if work then by_id[work.id] = work end
+local function search_results(search)
+    if type(search) ~= "table" or type(search.ids) ~= "table"
+            or type(search.results) ~= "table" then return nil end
+    local works, seen = {}, {}
+    for index, row in ipairs(search.results) do
+        local work = normalize_search_work(row, search.ids[index])
+        if work and not seen[work.id] then
+            seen[work.id] = true
+            works[#works + 1] = work
+        end
     end
-    local works = {}
-    for _i, id in ipairs(ids) do
-        if by_id[id] then works[#works + 1] = by_id[id] end
-    end
-    if #works == 0 then return nil, failure("no_match") end
     return works
-end
-
-local function isbn_value(input)
-    local isbn = input.isbn_13 or input.isbn_10 or input.isbn
-    if type(isbn) ~= "string" then return nil end
-    isbn = isbn:gsub("[^%dXx]", ""):upper()
-    if isbn:match("^%d%d%d%d%d%d%d%d%d[%dX]$") then
-        local sum = 0
-        for index = 1, 10 do
-            local character = isbn:sub(index, index)
-            local digit = character == "X" and 10 or tonumber(character)
-            sum = sum + digit * (11 - index)
-        end
-        if sum % 11 == 0 then return isbn end
-    elseif isbn:match("^%d%d%d%d%d%d%d%d%d%d%d%d%d$") then
-        local sum = 0
-        for index = 1, 12 do
-            local weight = index % 2 == 0 and 3 or 1
-            sum = sum + tonumber(isbn:sub(index, index)) * weight
-        end
-        if (10 - sum % 10) % 10 == tonumber(isbn:sub(13, 13)) then return isbn end
-    end
 end
 
 local function search_text(input)
@@ -662,25 +358,21 @@ function M.search(token, input, transport)
         if #data.editions > 0 and #print_editions == 0 then
             logger.dbg("ISBN match was audio-only; falling back to title search")
         end
-        local ids = unique_ids(print_editions)
-        if #ids > 0 then
-            local works, hydrate_err = hydrate_works(token, ids, transport)
-            if works then
-                local exact_by_work = {}
-                for _i, row in ipairs(print_editions) do
-                    local edition = normalize_edition(row)
-                    if edition and not exact_by_work[edition.work_id] then
-                        exact_by_work[edition.work_id] = edition
-                    end
+        local works, seen = {}, {}
+        for _i, row in ipairs(print_editions) do
+            local work = normalize_work(row.book)
+            local edition = normalize_edition(row)
+            if work and edition and work.id == edition.work_id then
+                if not seen[work.id] then
+                    seen[work.id] = work
+                    work.exact_edition = edition
+                    works[#works + 1] = work
                 end
-                for _i, work in ipairs(works) do
-                    work.exact_edition = exact_by_work[work.id]
-                end
-                logger.dbg("ISBN search complete works=", #works)
-                return works
-            elseif not hydrate_err or hydrate_err.kind ~= "no_match" then
-                return nil, hydrate_err
             end
+        end
+        if #works > 0 then
+            logger.dbg("ISBN search complete works=", #works)
+            return works
         end
     end
 
@@ -698,11 +390,12 @@ function M.search(token, input, transport)
     if type(data.search) ~= "table" or type(data.search.ids) ~= "table" then
         return nil, failure("malformed")
     end
-    local ids = unique_ids(data.search.ids)
-    if #ids == 0 then return nil, failure("no_match") end
-    local works, hydrate_err = hydrate_works(token, ids, transport)
-    if works then logger.dbg("title search complete works=", #works) end
-    return works, hydrate_err
+    if #data.search.ids == 0 then return nil, failure("no_match") end
+    local works = search_results(data.search)
+    if not works then return nil, failure("malformed") end
+    if #works == 0 then return nil, failure("no_match") end
+    logger.dbg("title search complete works=", #works)
+    return works
 end
 
 local function language_code(language)
@@ -754,6 +447,13 @@ function M.editions(token, work_or_id, transport)
     }, transport)
     if not data then return nil, err end
     if type(data.editions) ~= "table" then return nil, failure("malformed") end
+    if type(work_or_id) == "table" then
+        local work = normalize_work(data.book)
+        if not work or work.id ~= work_id then return nil, failure("malformed") end
+        work_or_id.series_name = work.series_name
+        work_or_id.series_index = work.series_index
+        for key, value in pairs(work) do work_or_id[key] = value end
+    end
     prioritize_editions(data.editions)
 
     local editions = {}
@@ -772,10 +472,9 @@ function M.downloadCover(url, destination, transport)
         return nil, failure("malformed")
     end
     logger.dbg("cover download start")
-    local ok, path, err = pcall(transport or default_cover_transport, url, destination)
-    if not ok then return nil, failure("network") end
-    if not path then return nil, transport_failure(err) end
-    return path
+    return Http.download(url, destination, COVER_HOST, {
+        ["Accept"] = "image/jpeg, image/png, image/webp, image/gif",
+    }, transport)
 end
 
 local function copy_list(values)

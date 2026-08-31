@@ -36,10 +36,20 @@ msgstr "本章剩余 %1 分钟"
 msgid "%1 pages"
 msgstr "%1 页"
 
+#. Context: offer_metadata_settings(provider ~= "" and T(_("%1 rejected its API credential. Open metadata settings?"), provider) or _("A metadata provider rejected its API credential. Open metadata settings?"))
+#: metadata_editor.lua:189
+msgid "%1 rejected its API credential. Open metadata settings?"
+msgstr "%1 拒绝了其 API 凭据。打开元数据设置吗？"
+
 #. Context: if name ~= self.draft.language then return T(_("%1 · %2"), name, self.draft.language) end
 #: metadata_editor.lua:204
 msgid "%1 · %2"
 msgstr "%1 · %2"
+
+#. Context: return T(_("%1 · %2 / %3 still loading"), _("Metadata results"), remaining, total)
+#: metadata_editor.lua:501
+msgid "%1 · %2 / %3 still loading"
+msgstr "%1 · 仍在加载 %2 / %3"
 
 msgid "%1 · %2 · %3"
 msgstr "%1 · %2 · %3"
@@ -198,6 +208,26 @@ msgstr "已存在同名文件。"
 #: zenpm_installer.lua:398
 msgid "A launcher button has been added for ZenPM."
 msgstr "已添加 ZenPM 启动器按钮。"
+
+#. Context: offline = _("Connect to a network before searching metadata."), rate_limited = _("A metadata provider is rate-limiting requests. Try again later."), server = _("A metadata provider is unavailable right now. Try again later."),
+#: metadata_editor.lua:174
+msgid "A metadata provider is rate-limiting requests. Try again later."
+msgstr "元数据提供商正在限制请求频率。请稍后重试。"
+
+#. Context: rate_limited = _("A metadata provider is rate-limiting requests. Try again later."), server = _("A metadata provider is unavailable right now. Try again later."), malformed = _("A metadata provider returned an unreadable response."),
+#: metadata_editor.lua:175
+msgid "A metadata provider is unavailable right now. Try again later."
+msgstr "元数据提供商当前不可用。请稍后重试。"
+
+#. Context: and T(_("%1 rejected its API credential. Open metadata settings?"), provider) or _("A metadata provider rejected its API credential. Open metadata settings?")) return
+#: metadata_editor.lua:190
+msgid "A metadata provider rejected its API credential. Open metadata settings?"
+msgstr "元数据提供商拒绝了其 API 凭据。打开元数据设置吗？"
+
+#. Context: server = _("A metadata provider is unavailable right now. Try again later."), malformed = _("A metadata provider returned an unreadable response."), no_match = _("No metadata matches were found."),
+#: metadata_editor.lua:176
+msgid "A metadata provider returned an unreadable response."
+msgstr "元数据提供商返回了无法读取的响应。"
 
 #. Context: title = _("Bug report title"), description = _("A short summary of what went wrong"), input = "",
 #: zen_bugreporter.lua:189
@@ -451,6 +481,11 @@ msgstr "作者"
 #: group_view.lua:1273
 msgid "authors"
 msgstr "位作者"
+
+#. Context: { text = _("Auto-pick best match"), radio = true,
+#: metadata_settings.lua:168
+msgid "Auto-pick best match"
+msgstr "自动选择最佳匹配项"
 
 #. Context: local size = mcfg.automatic_font_size ~= false and _("Automatic") or tostring(style.font_size) return font_label(style.font_face) .. ", " .. size
 #: home_settings.lua:529 home_settings.lua:2132
@@ -795,18 +830,18 @@ msgstr "国际象棋"
 msgid "Choose a different folder"
 msgstr "选择其他文件夹"
 
-#. Context: require("common/ui/zen_menu_picker"){ title = _("Choose a Hardcover edition"), items = items,
-#: metadata_editor.lua:271
-msgid "Choose a Hardcover edition"
-msgstr "选择 Hardcover 版本"
+#. Context: picker = require("common/ui/zen_menu_picker"){ title = _("Choose an edition"), items = items,
+#: metadata_editor.lua:462
+msgid "Choose an edition"
+msgstr "选择版本"
 
 #. Context: require("common/ui/zen_menu_picker"){ title = _("Choose control"), items = picker_items,
 #: app_launcher_settings.lua:471 menu_settings.lua:427 home_settings.lua:1324 navbar_settings.lua:631 navbar_settings.lua:653
 msgid "Choose control"
 msgstr "选择控制"
 
-#. Context: local items = { { text = _("Choose image"), action = "image" }, { text = _("Find on Hardcover"), action = "hardcover" },
-#: metadata_editor.lua:433
+#. Context: { text = _("Choose image"), action = "image",
+#: metadata_editor.lua:737
 msgid "Choose image"
 msgstr "选择图片"
 
@@ -819,6 +854,11 @@ msgstr "选择项目"
 #: app_launcher_settings.lua:414 menu_settings.lua:407 home_settings.lua:1306 navbar_settings.lua:447
 msgid "Choose KOReader menu"
 msgstr "选择 KOReader 菜单"
+
+#. Context: { text = _("Choose match manually"), radio = true,
+#: metadata_settings.lua:179
+msgid "Choose match manually"
+msgstr "手动选择匹配项"
 
 #. Context: show_menu_picker{ title = _("Choose plugin menu"), items = picker_items,
 #: app_launcher_settings.lua:320 app_launcher_settings.lua:390 menu_settings.lua:392 home_settings.lua:1284 navbar_settings.lua:432
@@ -865,10 +905,20 @@ msgstr "清除所有手势"
 msgid "Clear book"
 msgstr "清除图书"
 
+#. Context: label = _("Google Books API key:"), clear = _("Clear Google Books API key"), confirm = _("Clear the saved Google Books API key?"),
+#: metadata_settings.lua:134
+msgid "Clear Google Books API key"
+msgstr "清除 Google Books API 密钥"
+
 #. Context: { text = _("Clear Hardcover token"), enabled_func = function()
 #: metadata_settings.lua:71
 msgid "Clear Hardcover token"
 msgstr "清除 Hardcover 令牌"
+
+#. Context: clear = _("Clear Google Books API key"), confirm = _("Clear the saved Google Books API key?"), clear_failed = _("The Google Books API key could not be cleared."),
+#: metadata_settings.lua:135
+msgid "Clear the saved Google Books API key?"
+msgstr "清除已保存的 Google Books API 密钥吗？"
 
 #. Context: UIManager:show(ConfirmBox:new{ text = _("Clear the saved Hardcover API token?"), ok_text = _("Clear"),
 #: metadata_settings.lua:79
@@ -925,10 +975,10 @@ msgstr "紧凑"
 msgid "Connect folders"
 msgstr "关联文件夹"
 
-#. Context: local hardcover_errors = { offline = _("Connect to a network before searching Hardcover."), rate_limited = _("Hardcover is rate-limiting requests. Try again later."),
-#: metadata_editor.lua:95
-msgid "Connect to a network before searching Hardcover."
-msgstr "请连接网络后再搜索 Hardcover。"
+#. Context: local metadata_errors = { offline = _("Connect to a network before searching metadata."), rate_limited = _("A metadata provider is rate-limiting requests. Try again later."),
+#: metadata_editor.lua:173
+msgid "Connect to a network before searching metadata."
+msgstr "请先连接网络，然后再搜索元数据。"
 
 #. Context: icon = "quick_connections", label = _("Connections"), visible_func = function() return hasPlugin("nytconnections") end,
 #: quick_settings.lua:912 menu_settings.lua:100
@@ -998,10 +1048,10 @@ msgstr "无法安装 %1：%2"
 msgid "Could not install ZenPM."
 msgstr "无法安装 ZenPM。"
 
-#. Context: no_match = _("No Hardcover matches were found."), network = _("Could not reach Hardcover."), }
-#: metadata_editor.lua:100
-msgid "Could not reach Hardcover."
-msgstr "无法连接到 Hardcover。"
+#. Context: no_match = _("No metadata matches were found."), network = _("Could not reach a metadata provider."), }
+#: metadata_editor.lua:178
+msgid "Could not reach a metadata provider."
+msgstr "无法连接到元数据提供商。"
 
 #. Context: else M._last_error = _("Could not reach update server.") end
 #: zen_updater.lua:704
@@ -1609,20 +1659,30 @@ msgstr "启用 Zen OPDS"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "启用 ZenOS 对 OPDS 浏览器的增强：封面图、列表视图、长按菜单及导航改进。"
 
+#. Context: or missing_credential and _("Enabled metadata providers need an API credential. Open settings?") or _("No metadata providers are available. Open settings?"))
+#: metadata_editor.lua:576
+msgid "Enabled metadata providers need an API credential. Open settings?"
+msgstr "已启用的元数据提供商需要 API 凭据。打开设置吗？"
+
 #. Context: .. "\n\n" .. _("Enabling debug logging, restart required. Please reproduce the issue, then submit the report."), ok_text = _("Restart now"),
 #: zen_bugreporter.lua:150
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "正在启用调试日志，需要重启。请重现问题后再提交报告。"
 
-#. Context: if title == "" then editor:showError(_("Enter a title to search Hardcover.")) return
-#: metadata_editor.lua:363
-msgid "Enter a title to search Hardcover."
-msgstr "请输入标题以搜索 Hardcover。"
+#. Context: if title == "" then editor:showError(_("Enter a title to search metadata.")) return
+#: metadata_editor.lua:655
+msgid "Enter a title to search metadata."
+msgstr "请输入书名以搜索元数据。"
 
 #. Context: or basename:find("\\", 1, true) then self:showError(_("Enter a valid filename.")) return
 #: metadata_editor.lua:539
 msgid "Enter a valid filename."
 msgstr "请输入有效的文件名。"
+
+#. Context: description = _("The key is stored locally as plain text and is never logged."), invalid = _("Enter a valid Google Books API key without spaces."), label = _("Google Books API key:"),
+#: metadata_settings.lua:132
+msgid "Enter a valid Google Books API key without spaces."
+msgstr "请输入不含空格的有效 Google Books API 密钥。"
 
 #. Context: UIManager:show(require("ui/widget/infomessage"):new{ text = _("Enter a valid Hardcover token without spaces."), })
 #: metadata_settings.lua:38
@@ -1638,6 +1698,11 @@ msgstr "请每行输入一个值。"
 #: zen_bugreporter.lua:250
 msgid "Enter your GitHub username to be tagged in the issue"
 msgstr "输入您的 GitHub 用户名以在 issue 中被提及"
+
+#. Context: parts[#parts + 1] = provider_label(work._provider) if work.exact_edition then parts[#parts + 1] = _("Exact ISBN match") end parts[#parts + 1] = table.concat(
+#: metadata_editor.lua:244
+msgid "Exact ISBN match"
+msgstr "ISBN 完全匹配"
 
 #. Context: { id = "stats", label = _("Stats") }, { id = "exit", label = _("Exit") }, { id = "page_left", label = _("Previous page") },
 #: nav_button_model.lua:23 navbar.lua:317 quick_settings.lua:678 quick_settings.lua:682 menu_settings.lua:83 navbar_settings.lua:181
@@ -1732,15 +1797,10 @@ msgstr "筛选"
 msgid "Filter by status"
 msgstr "按状态筛选"
 
-#. Context: end return _("Find on Hardcover") end
-#: metadata_editor.lua:363 metadata_editor.lua:434
-msgid "Find on Hardcover"
-msgstr "在 Hardcover 上查找"
-
-#. Context: local lookup_token = token() run_hardcover_request(_("Finding Hardcover editions…"), function() return require("modules/filebrowser/metadata/hardcover")
-#: metadata_editor.lua:290
-msgid "Finding Hardcover editions…"
-msgstr "正在查找 Hardcover 版本…"
+#. Context: end return _("Find metadata") end
+#: metadata_editor.lua:652 metadata_editor.lua:814 metadata_editor.lua:743
+msgid "Find metadata"
+msgstr "查找元数据"
 
 #. Context: elseif display_status == "complete" then status_label = _("Finished") progress_str = "\u{F012C}" -- MD check
 #: browser_list_item_layout.lua:457 context_menu.lua:715 context_menu.lua:2060 context_menu.lua:2315 stats_page.lua:943 stats_page.lua:955
@@ -1885,6 +1945,21 @@ msgstr "前往"
 msgid "Go to page"
 msgstr "前往页面"
 
+#. Context: id = "google_books", label = _("Google Books"), module = "modules/filebrowser/metadata/google_books",
+#: metadata_editor.lua:130 metadata_settings.lua:162
+msgid "Google Books"
+msgstr "Google Books"
+
+#. Context: local google_items = credential_items(GoogleBooksStore, { title = _("Google Books API key"), description = _("The key is stored locally as plain text and is never logged."),
+#: metadata_settings.lua:130
+msgid "Google Books API key"
+msgstr "Google Books API 密钥"
+
+#. Context: invalid = _("Enter a valid Google Books API key without spaces."), label = _("Google Books API key:"), clear = _("Clear Google Books API key"),
+#: metadata_settings.lua:133
+msgid "Google Books API key:"
+msgstr "Google Books API 密钥："
+
 #. Context: menu._zen_block_dlg = ButtonDialog:new{ title = _("Graph metric"), title_align = "center",
 #: stats_page.lua:1360
 msgid "Graph metric"
@@ -1910,6 +1985,11 @@ msgstr "绿色"
 msgid "Group book series into folders"
 msgstr "将图书系列分组到文件夹中"
 
+#. Context: local provider = trim(self.edition_provider) if provider == "" then provider = _("Hardcover") end return T(_("%1 · %2"), provider, self.edition_summary)
+#: metadata_editor.lua:649 metadata_editor.lua:1042 metadata_editor.lua:123 metadata_settings.lua:161
+msgid "Hardcover"
+msgstr "Hardcover"
+
 #. Context: dlg = InputDialog:new{ title = _("Hardcover API token"), description = _("Use a token limited to read:catalog. It is stored locally as plain text and is never logged."),
 #: metadata_settings.lua:21
 msgid "Hardcover API token"
@@ -1919,36 +1999,6 @@ msgstr "Hardcover API 令牌"
 #: metadata_settings.lua:64
 msgid "Hardcover API token:"
 msgstr "Hardcover API 令牌："
-
-#. Context: offline = _("Connect to a network before searching Hardcover."), rate_limited = _("Hardcover is rate-limiting requests. Try again later."), server = _("Hardcover is unavailable right now. Try again later."),
-#: metadata_editor.lua:96
-msgid "Hardcover is rate-limiting requests. Try again later."
-msgstr "Hardcover 的请求过于频繁，请稍后重试。"
-
-#. Context: rate_limited = _("Hardcover is rate-limiting requests. Try again later."), server = _("Hardcover is unavailable right now. Try again later."), malformed = _("Hardcover returned an unreadable response."),
-#: metadata_editor.lua:97
-msgid "Hardcover is unavailable right now. Try again later."
-msgstr "Hardcover 目前不可用，请稍后重试。"
-
-#. Context: UIManager:show(InfoMessage:new{ text = hardcover_errors[kind] or _("Hardcover lookup failed."), })
-#: metadata_editor.lua:110
-msgid "Hardcover lookup failed."
-msgstr "Hardcover 查找失败。"
-
-#. Context: require("common/ui/zen_menu_picker"){ title = _("Hardcover results"), items = items,
-#: metadata_editor.lua:319
-msgid "Hardcover results"
-msgstr "Hardcover 结果"
-
-#. Context: server = _("Hardcover is unavailable right now. Try again later."), malformed = _("Hardcover returned an unreadable response."), no_match = _("No Hardcover matches were found."),
-#: metadata_editor.lua:98
-msgid "Hardcover returned an unreadable response."
-msgstr "Hardcover 返回了无法读取的响应。"
-
-#. Context: if self.edition_summary ~= "" then return T(_("Hardcover · %1"), self.edition_summary) end
-#: metadata_editor.lua:361
-msgid "Hardcover · %1"
-msgstr "Hardcover · %1"
 
 #. Context: filter_status_item(recent, "filter_tbr", _("Hide on-hold books")), filter_status_item(recent, "filter_finished", _("Hide finished books")), },
 #: home_settings.lua:1777
@@ -2162,6 +2212,11 @@ msgstr "每页项目数"
 #: zen_settings.lua:81 library_settings.lua:853
 msgid "Items per page"
 msgstr "每页项目数"
+
+#. Context: { text = _("Keep an EPUB metadata backup"), checked_func = function() return metadata.epub_backup == true end,
+#: metadata_settings.lua:192
+msgid "Keep an EPUB metadata backup"
+msgstr "保留 EPUB 元数据备份"
 
 #. Context: text = _("You have unsaved changes."), cancel_text = _("Keep editing"), choice1_text = _("Discard"),
 #: metadata_editor.lua:631 metadata_editor.lua:808 metadata_editor.lua:88
@@ -2429,6 +2484,11 @@ msgstr "未找到漫画文件夹: "
 msgid "Manually download and sideload %1 from the same ZenPM release."
 msgstr "从同一 ZenPM 发行版手动下载并旁加载 %1。"
 
+#. Context: { text = _("Match selection"), sub_item_table = {
+#: metadata_settings.lua:165
+msgid "Match selection"
+msgstr "匹配项选择"
+
 #. Context: { text = _("Match whole words"), help_text = _("When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."),
 #: global_settings.lua:317
 msgid "Match whole words"
@@ -2488,6 +2548,16 @@ msgstr "无法恢复元数据。"
 #: metadata_editor.lua:504 metadata_settings.lua:44
 msgid "Metadata could not be saved."
 msgstr "无法保存元数据。"
+
+#. Context: UIManager:show(InfoMessage:new{ text = metadata_errors[kind] or _("Metadata lookup failed."), })
+#: metadata_editor.lua:194
+msgid "Metadata lookup failed."
+msgstr "元数据查找失败。"
+
+#. Context: picker = require("common/ui/zen_menu_picker"){ title = _("Metadata results"), items = items,
+#: metadata_editor.lua:550
+msgid "Metadata results"
+msgstr "元数据结果"
 
 #. Context: return nil, metadata_dirty and _("Metadata was saved, but the cover image could not be saved.") or _("The cover image could not be saved.")
 #: metadata_editor.lua:514
@@ -2792,16 +2862,6 @@ msgstr "未提供更新日志。"
 msgid "No description."
 msgstr "无描述。"
 
-#. Context: malformed = _("Hardcover returned an unreadable response."), no_match = _("No Hardcover matches were found."), network = _("Could not reach Hardcover."),
-#: metadata_editor.lua:99
-msgid "No Hardcover matches were found."
-msgstr "未找到匹配的 Hardcover 结果。"
-
-#. Context: if lookup_token == "" then offer_token_settings(_("No Hardcover token is saved. Open metadata settings to add one?")) return
-#: metadata_editor.lua:335
-msgid "No Hardcover token is saved. Open metadata settings to add one?"
-msgstr "尚未保存 Hardcover 令牌。是否打开元数据设置以添加令牌？"
-
 #. Context: local InfoMessage = require("ui/widget/infomessage") UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") }) return
 #: app_launcher_settings.lua:410 menu_settings.lua:403 navbar_settings.lua:443
 msgid "No KOReader submenus found"
@@ -2811,6 +2871,21 @@ msgstr "未找到 KOReader 子菜单"
 #: app_launcher_settings.lua:308 app_launcher_settings.lua:378 menu_settings.lua:380 navbar_settings.lua:421
 msgid "No launchable plugin menus found"
 msgstr "未找到可启动的插件菜单"
+
+#. Context: malformed = _("A metadata provider returned an unreadable response."), no_match = _("No metadata matches were found."), network = _("Could not reach a metadata provider."),
+#: metadata_editor.lua:177
+msgid "No metadata matches were found."
+msgstr "未找到匹配的元数据。"
+
+#. Context: and _("Enabled metadata providers need an API credential. Open settings?") or _("No metadata providers are available. Open settings?")) return
+#: metadata_editor.lua:577
+msgid "No metadata providers are available. Open settings?"
+msgstr "没有可用的元数据提供商。打开设置吗？"
+
+#. Context: offer_metadata_settings(not any_enabled and _("No metadata providers are enabled. Open settings?") or missing_credential
+#: metadata_editor.lua:574
+msgid "No metadata providers are enabled. Open settings?"
+msgstr "没有已启用的元数据提供商。打开设置吗？"
 
 #. Context: UIManager:show(InfoMessage:new{ text = _("No network connection. Please connect to Wi-Fi and try again."), })
 #: zen_bugreporter.lua:168
@@ -2967,6 +3042,11 @@ msgstr "打开文件夹"
 msgid "Open Hardcover token page"
 msgstr "打开 Hardcover 令牌页面"
 
+#. Context: id = "open_library", label = _("Open Library"), module = "modules/filebrowser/metadata/open_library",
+#: metadata_editor.lua:137 metadata_settings.lua:163
+msgid "Open Library"
+msgstr "Open Library"
+
 #. Context: { text = _("Open menu to Launcher"), checked_func = function()
 #: app_launcher_settings.lua:1017
 msgid "Open menu to Launcher"
@@ -3007,10 +3087,10 @@ msgstr "打开这个文件？"
 msgid "Open with…"
 msgstr "打开…"
 
-#. Context: UIManager:show(InfoMessage:new{ text = _("Open Zen UI Settings → Library → Metadata to set a Hardcover token."), })
-#: metadata_editor.lua:72
-msgid "Open Zen UI Settings → Library → Metadata to set a Hardcover token."
-msgstr "打开 Zen UI 设置 → 书库 → 元数据以设置 Hardcover 令牌。"
+#. Context: UIManager:show(InfoMessage:new{ text = _("Open Zen UI Settings → Library → Metadata to configure providers."), })
+#: metadata_editor.lua:98
+msgid "Open Zen UI Settings → Library → Metadata to configure providers."
+msgstr "打开 Zen UI 设置 → 书库 → 元数据以配置提供商。"
 
 #. Context: local tw = TextWidget:new{ text = self.label or _("Opening"), face = Font:getFace("cfont", Screen:scaleBySize(7)),
 #: opening_banner.lua:463
@@ -3645,6 +3725,11 @@ msgstr "将当前设置保存为预设"
 msgid "Save EPUB"
 msgstr "保存 EPUB"
 
+#. Context: and _("Save these changes inside the EPUB? ZenOS will keep one restorable backup.") or _("Save these changes inside the EPUB?"), cancel_text = _("Cancel"),
+#: metadata_editor.lua:890
+msgid "Save these changes inside the EPUB?"
+msgstr "将这些更改保存到 EPUB 内部？"
+
 #. Context: UIManager:show(ConfirmBox:new{ text = _("Save these changes inside the EPUB? ZenOS will keep one restorable backup."), cancel_text = _("Cancel"),
 #: metadata_editor.lua:529
 msgid "Save these changes inside the EPUB? ZenOS will keep one restorable backup."
@@ -3705,15 +3790,15 @@ msgstr "重新搜索"
 msgid "Search Book"
 msgstr "搜索书籍"
 
-#. Context: dialog = MultiInputDialog:new{ title = _("Search Hardcover"), fields = {
-#: metadata_editor.lua:373
-msgid "Search Hardcover"
-msgstr "搜索 Hardcover"
-
 #. Context: search_dialog = InputDialog:new{ title = _("Search Library"), input = search_string or FileManagerFileSearcher.search_string,
 #: search.lua:59
 msgid "Search Library"
 msgstr "搜索图书馆"
+
+#. Context: dialog = MultiInputDialog:new{ title = _("Search metadata"), fields = {
+#: metadata_editor.lua:666
+msgid "Search metadata"
+msgstr "搜索元数据"
 
 #. Context: UIManager:close(dialog) browser.catalog_title = _("Search results") local search_url = item_url:gsub("%%s", function() return search_str end)
 #: opds.lua:1480
@@ -3725,10 +3810,10 @@ msgstr "搜索结果"
 msgid "Search settings"
 msgstr "搜索设置"
 
-#. Context: query = query or draft run_hardcover_request(_("Searching Hardcover…"), function() return require("modules/filebrowser/metadata/hardcover")
-#: metadata_editor.lua:339
-msgid "Searching Hardcover…"
-msgstr "正在搜索 Hardcover…"
+#. Context: Edition lookup and metadata search
+#: metadata_editor.lua:456 metadata_editor.lua:541
+msgid "Searching metadata…"
+msgstr "正在搜索元数据…"
 
 #. Context: { text = "\u{F0489} " .. _("Select"), align = "left",
 #: context_menu.lua:1619
@@ -4346,15 +4431,20 @@ msgstr "默认的 KOReader 阅读器菜单位于 Aa 图标中。"
 msgid "The EPUB backup could not be moved."
 msgstr "无法移动 EPUB 备份。"
 
+#. Context: confirm = _("Clear the saved Google Books API key?"), clear_failed = _("The Google Books API key could not be cleared."), })
+#: metadata_settings.lua:136
+msgid "The Google Books API key could not be cleared."
+msgstr "无法清除 Google Books API 密钥。"
+
 #. Context: UIManager:show(require("ui/widget/infomessage"):new{ text = _("The Hardcover token could not be cleared."), })
 #: metadata_settings.lua:85
 msgid "The Hardcover token could not be cleared."
 msgstr "无法清除 Hardcover 令牌。"
 
-#. Context: if kind == "unauthorized" or kind == "forbidden" then offer_token_settings(_("The Hardcover token was rejected. Check that it has read:catalog access.")) return
-#: metadata_editor.lua:106
-msgid "The Hardcover token was rejected. Check that it has read:catalog access."
-msgstr "Hardcover 令牌被拒绝。请检查它是否拥有 read:catalog 权限。"
+#. Context: title = _("Google Books API key"), description = _("The key is stored locally as plain text and is never logged."), invalid = _("Enter a valid Google Books API key without spaces."),
+#: metadata_settings.lua:131
+msgid "The key is stored locally as plain text and is never logged."
+msgstr "密钥以纯文本形式存储在本地，且绝不会记录到日志中。"
 
 #. Context: missing_language = _("An EPUB language is required."), sidecar_write_failed = _("The KOReader metadata override could not be saved."), }
 #: metadata_editor.lua:25
@@ -4400,6 +4490,11 @@ msgstr "此文件已不可用。"
 #: menu_tour.lua:14
 msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
 msgstr "这是禅宗设置。 ZenOS 设置/更新和常见 KOReader 设置位于此处。"
+
+#. Context: if provider.credential and credential == "" then offer_metadata_settings(_("This metadata provider needs an API credential. Open settings?")) return
+#: metadata_editor.lua:503
+msgid "This metadata provider needs an API credential. Open settings?"
+msgstr "此元数据提供商需要 API 凭据。打开设置吗？"
 
 #. Context: this_week = _("This Week"), this_month = _("This Month"), this_year = _("This Year"),
 #: stats_page.lua:62
