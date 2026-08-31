@@ -17,10 +17,13 @@ local function apply_page_browser()
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
-    -- Older Android builds call JNI here; cache it before thumbnail workers fork.
-    if Device.isAndroid and Device:isAndroid() and type(Device.hasColorScreen) == "function" then
+    -- Cache Android JNI-backed display probes before thumbnail workers fork.
+    if Device.isAndroid and Device:isAndroid() then
         local has_color_screen = Device:hasColorScreen()
+        local has_eink_screen = Device:hasEinkScreen()
         Device.hasColorScreen = function() return has_color_screen end
+        Device.hasEinkScreen = function() return has_eink_screen end
+        Device.screen.isColorScreen = Device.hasColorScreen
     end
 
     local function key_matches_menu(key)
