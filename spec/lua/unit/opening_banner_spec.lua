@@ -8,7 +8,7 @@ describe("opening banner", function()
         require("modules/reader/patches/opening_banner")()
     end
 
-    local function install_stubs()
+    local function install_stubs(is_color)
         local next_tick
         local shown, closed, scheduled, refresh_hints = {}, {}, {}, {}
         local ReaderUI = {
@@ -99,6 +99,7 @@ describe("opening banner", function()
                 getWidth = function() return 600 end,
                 getHeight = function() return 800 end,
                 scaleBySize = function(_, value) return value end,
+                isColorScreen = function() return is_color == true end,
             },
             setIgnoreInput = function() end,
         })
@@ -133,6 +134,15 @@ describe("opening banner", function()
             next_tick()
         end, ListMenuItem, MosaicMenuItem, scheduled, ConfirmBox, refresh_hints
     end
+
+    it("extends color-screen banners to the bottom edge", function()
+        local ReaderUI, _, shown = install_stubs(true)
+        apply_patch()
+
+        ReaderUI.showReaderCoroutine({ doShowReader = function() end }, "book.epub", {})
+
+        assert.are.same({ x = 0, y = 766, w = 600, h = 34 }, shown[1].dimen)
+    end)
 
     it("defers no-banner opens while retaining a silent UI window", function()
         local ReaderUI, _, shown, closed, run_next_tick = install_stubs()

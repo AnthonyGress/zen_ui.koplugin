@@ -1,4 +1,5 @@
 local ConfigManager = require("config/manager")
+local author_sort = require("common/author_sort")
 local book_status = require("common/book_status")
 local HistoryIndex = require("common/history_index")
 local icons = require("common/inline_icon_map")
@@ -97,6 +98,14 @@ local function save_zen_config(cfg)
     end
 end
 
+local function rebuild_home()
+    if not _zen_plugin then return end
+    local home = SharedState.get(_zen_plugin, "home")
+    if home and type(home.rebuildActive) == "function" then
+        home.rebuildActive()
+    end
+end
+
 local function get_display_mode(tab_id, group_name, fallback)
     local cfg = load_zen_config()
     local group_view = cfg and cfg.group_view
@@ -180,6 +189,23 @@ local function set_group_reverse(tab_id, reverse)
     end
     cfg.group_view.group_reverse[tab_id] = reverse == true
     save_zen_config(cfg)
+    if tab_id == "authors" then rebuild_home() end
+end
+
+local function get_authors_collate()
+    local cfg = load_zen_config()
+    local stored = cfg and cfg.group_view and cfg.group_view.authors_collate
+    return author_sort.normalize(stored)
+end
+
+local function set_authors_collate(collate)
+    if not author_sort.isMode(collate) then return end
+    local cfg = load_zen_config()
+    if type(cfg) ~= "table" then return end
+    if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
+    cfg.group_view.authors_collate = collate
+    save_zen_config(cfg)
+    rebuild_home()
 end
 
 local function get_tags_global_collate()
@@ -426,6 +452,13 @@ local function build_group_item_table(groups, data_type)
             _zen_group  = (data_type == "series") and group or nil,
         })
     end
+
+    if data_type == "authors" and #items > 1 then
+        local collate = get_authors_collate()
+        table.sort(items, function(a, b)
+            return author_sort.less(a.text, b.text, collate)
+        end)
+    end
     if #items == 0 then
         table.insert(items, {
             text                    = empty_message,
@@ -630,28 +663,63 @@ local function showGroupSortDialog(tab_id, menu)
     local title = tab_id == "authors" and _("Sort authors")
         or tab_id == "languages" and _("Sort languages") or _("Sort series")
 
+    local function rebuild()
+        if not menu then return end
+        local ok, db = pcall(require, "common/db_bookinfo")
+        if not ok then return end
+        local groups
+        if tab_id == "authors" then
+            groups = db.getGroupedByAuthor()
+        elseif tab_id == "languages" then
+            groups = db.getGroupedByLanguage()
+        else
+            groups = db.getGroupedBySeries()
+        end
+        menu.item_table = build_group_item_table(groups, tab_id)
+        menu:updateItems()
+    end
+
+    if tab_id == "authors" then
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local UIManager = require("ui/uimanager")
+        local current = get_authors_collate()
+        local current_reverse = get_group_reverse(tab_id)
+        local sort_dialog
+        local buttons = author_sort.modeButtons(current, _, function(collate)
+            UIManager:close(sort_dialog)
+            set_authors_collate(collate)
+            rebuild()
+        end)
+        buttons[#buttons + 1] = {{
+            text = "\u{F0DC}  " .. _("Order") .. "  \u{25B6}",
+            align = "left",
+            callback = function()
+                UIManager:close(sort_dialog)
+                fm.file_chooser:showSortOrderDialog({
+                    title = title,
+                    current_reverse = current_reverse,
+                    on_select = function(reverse)
+                        set_group_reverse(tab_id, reverse)
+                        rebuild()
+                    end,
+                })
+            end,
+        }}
+        sort_dialog = ButtonDialog:new{
+            title = title,
+            title_align = "center",
+            buttons = buttons,
+        }
+        UIManager:show(sort_dialog)
+        return
+    end
+
     fm.file_chooser:showSortOrderDialog({
         title           = title,
         current_reverse = get_group_reverse(tab_id),
         on_select       = function(reverse)
             set_group_reverse(tab_id, reverse)
-            if menu then
-                local ok, db = pcall(require, "common/db_bookinfo")
-                if ok then
-                    local groups
-                    if tab_id == "authors" then
-                        groups = db.getGroupedByAuthor()
-                    elseif tab_id == "languages" then
-                        groups = db.getGroupedByLanguage()
-                    elseif tab_id == "tags" then
-                        groups = db.getGroupedByTags()
-                    else
-                        groups = db.getGroupedBySeries()
-                    end
-                    menu.item_table = build_group_item_table(groups, tab_id)
-                    menu:updateItems()
-                end
-            end
+            rebuild()
         end,
     })
 end

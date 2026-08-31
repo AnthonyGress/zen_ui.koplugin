@@ -85,7 +85,7 @@ describe("page browser entry", function()
         ZenSpec.unload("common/reader_font")
     end)
 
-    it("disables CRengine callbacks in Android thumbnail workers", function()
+    it("renders Android thumbnails without a subprocess", function()
         local PageBrowserWidget = {}
         install_widget_dependencies(PageBrowserWidget)
         ZenSpec.replace("apps/reader/modules/readermenu", {})
@@ -93,25 +93,55 @@ describe("page browser entry", function()
 
         local Device = require("device")
         Device.isAndroid = function() return true end
-        local callback_cleared = false
+        local stock_check_calls = 0
         local ReaderThumbnail = {
-            _getPageImage = function(_, page)
-                expect(callback_cleared)
-                return page
-            end,
+            checkTileGeneration = function() stock_check_calls = stock_check_calls + 1 end,
         }
         ZenSpec.replace("apps/reader/modules/readerthumbnail", ReaderThumbnail)
+        ZenSpec.replace("ui/renderimage", {
+            scaleBlitBuffer = function(_, _bb, width, height)
+                return { stride = width, h = height }
+            end,
+        })
+        ZenSpec.replace("document/tilecacheitem", {
+            new = function(_, spec) return spec end,
+        })
+        ZenSpec.replace("logger", logger_stub())
 
         require("modules/reader/patches/page_browser")()
 
+        local inserted, generated
         local thumbnail = {
             ui = {
-                document = {
-                    setCallback = function() callback_cleared = true end,
-                },
+                view = { footer_visible = true, state = { page = 2, zoom = 3, rotation = 4 } },
             },
+            tile_cache = { insert = function(_, hash, tile) inserted = { hash, tile } end },
+            _getPageImage = function(self)
+                self.ui.view.footer_visible = false
+                self.ui.view.state.page = 99
+                return {
+                    getWidth = function() return 600 end,
+                    getHeight = function() return 800 end,
+                }
+            end,
         }
-        expect(ReaderThumbnail._getPageImage(thumbnail, 7) == 7)
+        local request = {
+            page = 7, width = 300, height = 200, hash = "page-7", batch_id = 5,
+            when_generated_callback = function(tile, batch_id, delayed)
+                generated = { tile, batch_id, delayed }
+            end,
+        }
+
+        expect(ReaderThumbnail.startTileGeneration(thumbnail, request) == true)
+        expect(thumbnail.ui.view.footer_visible == true)
+        expect(thumbnail.ui.view.state.page == 2)
+        expect(thumbnail.ui.view.state.zoom == 3)
+        expect(thumbnail.ui.view.state.rotation == 4)
+        expect(ReaderThumbnail.checkTileGeneration(thumbnail, request) == false)
+        expect(inserted[1] == "page-7")
+        expect(generated[1] == inserted[2])
+        expect(generated[2] == 5 and generated[3] == true)
+        expect(stock_check_calls == 0)
     end)
 
     it("registers the bottom gesture and opens the patched browser only when enabled", function()

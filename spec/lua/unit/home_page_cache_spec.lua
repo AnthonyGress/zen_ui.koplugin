@@ -1357,6 +1357,45 @@ describe("home data and book caches", function()
         assert.are.equal("/library/alpha.epub", books[1].path)
     end)
 
+    it("sorts Authors strip stacks like the Authors page", function()
+        ZenSpec.replace("common/db_bookinfo", {
+            getGroupedByAuthor = function()
+                return {
+                    { author = "Aaron Zulu", files = { "/library/alpha.epub" } },
+                    { author = "Zoe Alpha", files = { "/library/beta.epub" } },
+                }
+            end,
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local cfg = {
+            browser_cover_badges = {},
+            group_view = {
+                authors_collate = "authors_last",
+                group_reverse = { authors = false },
+            },
+        }
+        local provider = get_build_data_provider(Home)(cfg, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+
+        local groups = provider:getStripItemsForPage(
+            { kind = "authors" }, 4, "default", "strip", 0)
+
+        assert.are.same({ "Zoe Alpha", "Aaron Zulu" }, {
+            groups[1].group_label,
+            groups[2].group_label,
+        })
+
+        cfg.group_view.group_reverse.authors = true
+        groups = provider:getStripItemsForPage(
+            { kind = "authors" }, 4, "default", "strip", 0)
+        assert.are.same({ "Aaron Zulu", "Zoe Alpha" }, {
+            groups[1].group_label,
+            groups[2].group_label,
+        })
+    end)
+
     it("returns tag stacks and drills into their books", function()
         ZenSpec.replace("common/db_bookinfo", {
             getGroupedByTags = function()

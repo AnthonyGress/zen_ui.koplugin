@@ -1,4 +1,5 @@
 local logger = require("common/zen_logger").new("home_page")
+local author_sort = require("common/author_sort")
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
@@ -1782,6 +1783,16 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             if type(label) == "string" and type(files) == "table" and #files > 0 then
                 groups[#groups + 1] = { label = label, files = files }
             end
+        end
+        if kind == "authors" and #groups > 1 then
+            local group_view = type(cfg.group_view) == "table" and cfg.group_view or {}
+            local collate = author_sort.normalize(group_view.authors_collate)
+            table.sort(groups, function(a, b)
+                return author_sort.less(a.label, b.label, collate)
+            end)
+            local reverse = type(group_view.group_reverse) == "table"
+                and group_view.group_reverse.authors == true
+            if reverse then groups = reverse_copy(groups) end
         end
         return groups
     end

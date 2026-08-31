@@ -316,6 +316,7 @@ local defaults = {
     },
     group_view = {
         include_new_in_tbr = false,
+        authors_collate = "authors",
         display_mode = {
             authors = "list_image_meta",
             series = "list_image_meta",

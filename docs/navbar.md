@@ -42,7 +42,7 @@ The built-in **Folder** tab opens a folder you choose. Its presets can point to 
 
 The Authors, Series, and All tags tabs group your library by metadata instead of by folder. Each grouped view keeps its own display mode, sort field, and sort direction, so you can browse Authors as a list sorted A-Z while Series stays a cover grid sorted by recently read.
 
-- **Authors** groups books by author. Independent display mode and sort/reverse.
+- **Authors** groups books by author. It keeps an independent display mode and sorts by `First name` or `Last name`, with a separate ascending or descending order.
 - **Series** groups books by series, ordered by series position inside each group. Independent display mode and sort/reverse.
 - **All tags** groups books by tag/keyword. Independent display mode plus a global tag sort and direction.
 

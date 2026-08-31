@@ -17,16 +17,67 @@ local function apply_page_browser()
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
-    -- CRengine callbacks may touch Android UI/JNI, which is unsafe after fork.
+    -- Boox Android aborts forked thumbnail workers inside ART; render in-process.
     if Device.isAndroid and Device:isAndroid() then
         local ReaderThumbnail = require("apps/reader/modules/readerthumbnail")
-        local orig_get_page_image = ReaderThumbnail._getPageImage
-        ReaderThumbnail._getPageImage = function(self, ...)
-            local document = self.ui and self.ui.document
-            if document and type(document.setCallback) == "function" then
-                document:setCallback()
+        local RenderImage = require("ui/renderimage")
+        local TileCacheItem = require("document/tilecacheitem")
+        local logger = require("logger")
+
+        if not ReaderThumbnail._zen_android_sync_thumbnail_patch then
+            ReaderThumbnail._zen_android_sync_thumbnail_patch = true
+            local orig_check_tile_generation = ReaderThumbnail.checkTileGeneration
+
+            ReaderThumbnail.startTileGeneration = function(self, request)
+                local view = self.ui and self.ui.view
+                local state = view and view.state
+                local saved_footer = view and view.footer_visible
+                local saved_page = state and state.page
+                local saved_zoom = state and state.zoom
+                local saved_rotation = state and state.rotation
+
+                local ok, err = pcall(function()
+                    local bb = self:_getPageImage(request.page)
+                    local scale = math.min(request.width / bb:getWidth(), request.height / bb:getHeight())
+                    local tile = TileCacheItem:new{
+                        bb = RenderImage:scaleBlitBuffer(bb,
+                            math.floor(bb:getWidth() * scale),
+                            math.floor(bb:getHeight() * scale), true),
+                        pageno = request.page,
+                    }
+                    tile.size = tonumber(tile.bb.stride) * tile.bb.h
+                    request._zen_sync_tile = tile
+                end)
+
+                if view then
+                    view.footer_visible = saved_footer
+                    if state then
+                        state.page = saved_page
+                        state.zoom = saved_zoom
+                        state.rotation = saved_rotation
+                    end
+                end
+                if not ok then
+                    logger.warn("ZenOS Android synchronous thumbnail generation failed:", err)
+                    return false
+                end
+                return true
             end
-            return orig_get_page_image(self, ...)
+
+            ReaderThumbnail.checkTileGeneration = function(self, request)
+                local tile = request._zen_sync_tile
+                if not tile then
+                    return orig_check_tile_generation(self, request)
+                end
+                request._zen_sync_tile = nil
+                if self.tile_cache then
+                    self.tile_cache:insert(request.hash, tile)
+                end
+                if request.when_generated_callback then
+                    request.when_generated_callback(tile, request.batch_id, true)
+                end
+                return false
+            end
         end
     end
 

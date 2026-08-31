@@ -487,9 +487,11 @@ local function apply_opening_banner()
                 bw = cover.w - 2 * border
             end
         else
+            local bottom_margin = Screen:isColorScreen() and Screen:scaleBySize(6) or 0
             bx = 0
-            by = Screen:getHeight() - banner_h
+            by = Screen:getHeight() - banner_h - bottom_margin
             bw = Screen:getWidth()
+            banner_h = banner_h + bottom_margin
         end
 
         local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")

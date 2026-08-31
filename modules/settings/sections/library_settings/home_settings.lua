@@ -4,6 +4,7 @@ local UIManager = require("ui/uimanager")
 
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
+local author_sort = require("common/author_sort")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local library_font = require("modules/filebrowser/patches/library_font")
@@ -355,6 +356,17 @@ function M.build(ctx)
             make_builtin_editable()
         end
         PresetStore.saveSettings("home", dcfg)
+        home_rebuild_pending = true
+        schedule_home_rebuild_on_menu_close()
+    end
+
+    local function set_authors_collate(collate)
+        if not author_sort.isMode(collate) then return end
+        if type(config.group_view) ~= "table" then config.group_view = {} end
+        config.group_view.authors_collate = collate
+        if ctx.plugin and type(ctx.plugin.saveConfig) == "function" then
+            ctx.plugin:saveConfig()
+        end
         home_rebuild_pending = true
         schedule_home_rebuild_on_menu_close()
     end
@@ -1153,6 +1165,33 @@ function M.build(ctx)
         }, icons.sort)
     end
 
+    local function authors_sort_item()
+        local items = {}
+        for _i, option in ipairs(author_sort.options(_)) do
+            local collate = option.key
+            items[#items + 1] = {
+                text = option.text,
+                radio = true,
+                checked_func = function()
+                    local group_view = type(config.group_view) == "table"
+                        and config.group_view or {}
+                    return author_sort.normalize(group_view.authors_collate) == collate
+                end,
+                callback = function() set_authors_collate(collate) end,
+            }
+        end
+        return {
+            text_func = function()
+                local group_view = type(config.group_view) == "table"
+                    and config.group_view or {}
+                local mode = author_sort.normalize(group_view.authors_collate)
+                local label = mode == "authors_last" and _("Last name") or _("First name")
+                return _("Sort by") .. ": " .. label
+            end,
+            sub_item_table = items,
+        }
+    end
+
     local function edit_strip_label(controls, entry, touchmenu_instance)
         local InputDialog = require("ui/widget/inputdialog")
         local dialog
@@ -1491,6 +1530,8 @@ function M.build(ctx)
                     }
                     if button_id == "to_be_read" then
                         table.insert(sort_item.sub_item_table, 2, tbr_order_item())
+                    elseif button_id == "authors" then
+                        table.insert(sort_item.sub_item_table, 2, authors_sort_item())
                     end
                     sort_items[#sort_items + 1] = sort_item
                 end

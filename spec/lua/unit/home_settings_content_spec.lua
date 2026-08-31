@@ -190,6 +190,7 @@ describe("Home widget content settings", function()
                     { id = "recent", label = "Recent", source = true },
                     { id = "favorites", label = "Favorites", source = true },
                     { id = "to_be_read", label = "To Be Read", source = true },
+                    { id = "authors", label = "Authors", source = true },
                 }
             end,
             find = function(controls, id)
@@ -478,6 +479,37 @@ describe("Home widget content settings", function()
         assert.is_function(tbr_order_options.on_change)
 
         assert.are.equal(2, tbr_order_calls)
+    end)
+
+    it("exposes author name sorting from the Authors control tab", function()
+        local strip = home_page.modules.strip
+        strip.controls.enabled = true
+        strip.controls.order = { "recent", "authors" }
+        strip.controls.show_buttons.authors = true
+        local config = { group_view = { authors_collate = "authors" } }
+        local saves = 0
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        settings.build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            settings_apply = {},
+        })
+        assert.is_true(settings.openWidgetSettings("strip"))
+
+        local controls = find_item(arrange_options.item_table, "Controls")
+        find_item(controls.sub_item_table_func(), "Tabs").callback({})
+        local authors = find_item(arrange_options.item_table, "Authors")
+        local sort = find_item(authors.sub_item_table, "Sort by: First name")
+        local first = find_item(sort.sub_item_table, "First name")
+        local last = find_item(sort.sub_item_table, "Last name")
+
+        assert.is_true(first.radio)
+        assert.is_true(first.checked_func())
+        assert.is_false(last.checked_func())
+        last.callback()
+        assert.are.equal("authors_last", config.group_view.authors_collate)
+        assert.are.equal("Sort by: Last name", item_text(sort))
+        assert.are.equal(1, saves)
     end)
 
     it("exposes strip control font face, size, and weight settings", function()
