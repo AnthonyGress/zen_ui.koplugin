@@ -96,6 +96,8 @@ if _plugin_root then
             FontList:getFontList()  -- ensure fontlist + fontinfo initialized
             -- Scan bundled fonts dir into fontlist/fontinfo for FontChooser.
             local mark = {}
+            -- this will show an error about the symbols not being able to register for reader
+            -- this is normal and can be ignored
             pcall(FontList._readList, FontList, _plugin_root .. "/fonts", mark)
             if next(mark) then
                 -- Rebuild fontnames so FontChooser groups by family.
