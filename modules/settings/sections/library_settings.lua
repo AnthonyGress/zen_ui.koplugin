@@ -1492,6 +1492,7 @@ function M.build(ctx)
     IconItem.decorate(items[7], icons.settings_scroll)
     IconItem.decorate(items[8], icons.settings_background)
     IconItem.decorate(items[9], icons.settings_home_folder)
+    table.insert(items, table.remove(items, 3))
 
     return items
 end

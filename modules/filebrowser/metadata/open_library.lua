@@ -163,6 +163,7 @@ end
 local function is_audio(format)
     format = trim(format):lower()
     return format:find("audio", 1, true) ~= nil
+        or format:find("mp3", 1, true) ~= nil
         or format:find("compact disc", 1, true) ~= nil
         or format:match("%f[%w]cd%f[%W]") ~= nil
 end
@@ -257,6 +258,9 @@ function M.editions(_key, work, transport)
             editions[#editions + 1] = edition
         end
     end
+    if type(work.exact_edition) == "table" then
+        editions[#editions + 1] = work.exact_edition
+    end
     table.sort(editions, function(left, right)
         if left.is_audio ~= right.is_audio then return not left.is_audio end
         local left_year = tonumber(left.release_year) or math.huge
@@ -264,9 +268,6 @@ function M.editions(_key, work, transport)
         if left_year ~= right_year then return left_year < right_year end
         return left.id < right.id
     end)
-    if type(work.exact_edition) == "table" then
-        table.insert(editions, 1, work.exact_edition)
-    end
     if #editions == 0 then return nil, Http.failure("no_match") end
     return editions
 end

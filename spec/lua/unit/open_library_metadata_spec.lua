@@ -126,6 +126,12 @@ describe("Open Library metadata client", function()
         local requested_url
         local editions = assert(OpenLibrary.editions(nil, {
             id = "/works/OL893415W",
+            exact_edition = {
+                id = "/books/OL4M",
+                release_year = 2024,
+                edition_format = "Audio CD",
+                is_audio = true,
+            },
         }, function(url)
             requested_url = url
             return response({ entries = {
@@ -155,6 +161,12 @@ describe("Open Library metadata client", function()
                     isbn_10 = { "0441172717" },
                     covers = { 100 },
                 },
+                {
+                    key = "/books/OL5M",
+                    title = "Dune MP3",
+                    physical_format = "MP3",
+                    publish_date = "2025",
+                },
                 { key = "/works/OL1W", title = "Ignored" },
             } })
         end))
@@ -162,7 +174,7 @@ describe("Open Library metadata client", function()
         assert.are.equal(
             "https://openlibrary.org/works/OL893415W/editions.json?limit=30",
             requested_url)
-        assert.are.equal(3, #editions)
+        assert.are.equal(5, #editions)
         assert.are.equal("/books/OL1M", editions[1].id)
         assert.are.equal(1965, editions[1].release_year)
         assert.is_false(editions[1].is_audio)
@@ -175,6 +187,10 @@ describe("Open Library metadata client", function()
             "https://covers.openlibrary.org/b/id/200-L.jpg?default=false",
             editions[2].image_url)
         assert.is_true(editions[3].is_audio)
+        assert.are.equal("/books/OL4M", editions[4].id)
+        assert.is_true(editions[4].is_audio)
+        assert.are.equal("/books/OL5M", editions[5].id)
+        assert.is_true(editions[5].is_audio)
 
         local work = {
             title = "Dune",

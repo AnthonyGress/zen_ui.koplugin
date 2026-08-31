@@ -2352,7 +2352,7 @@ local function apply_context_menu()
                 })
             end
 
-            if not item._zen_home_context and not is_virtual_folder then
+            if not is_virtual_folder then
                 table.insert(buttons, {
                     {
                         text = "\u{F090C}  " .. _("Edit") .. "  " .. submenu_arrow,
