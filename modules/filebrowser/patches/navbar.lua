@@ -108,6 +108,7 @@ local function apply_navbar()
             languages = false,
             tags = false,
             to_be_read = false,
+            already_read = false,
             home = true,
             search = false,
             calibre_search = false,
@@ -293,6 +294,11 @@ local function apply_navbar()
             icon = "tab_to_be_read",
         },
         {
+            id = "already_read",
+            label = _("Already Read"),
+            icon = "tab_history",
+        },
+        {
             id = "home",
             label = getHomeLabel(),
             icon = "home",
@@ -359,7 +365,7 @@ local function apply_navbar()
         folder = true, continue = true, search = true, stats = true, exit = true,
     }
     local group_view_tabs = {
-        authors = true, series = true, languages = true, tags = true, to_be_read = true,
+        authors = true, series = true, languages = true, tags = true, to_be_read = true, already_read = true,
     }
 
     local function getCustomTagTab(tab_id)
@@ -1356,6 +1362,13 @@ local function apply_navbar()
         if GroupView then GroupView.showLanguagesView(injectStandaloneNavbar) end
     end
 
+    local function onTabAlreadyRead()
+        local GroupView = get_shared("group_view")
+        if GroupView and type(GroupView.showAlreadyReadView) == "function" then
+            GroupView.showAlreadyReadView(injectStandaloneNavbar)
+        end
+    end
+
     local function onTabTBR()
         local GroupView = get_shared("group_view")
         if GroupView then GroupView.showTBRView(injectStandaloneNavbar) end
@@ -1538,6 +1551,7 @@ local function apply_navbar()
         languages = onTabLanguages,
         tags = onTabTags,
         to_be_read = onTabTBR,
+        already_read = onTabAlreadyRead,
         home = onTabHome,
         search = onTabSearch,
         calibre_search = onTabCalibreSearch,
@@ -1560,7 +1574,7 @@ local function apply_navbar()
         series = true,
         languages = true,
         tags = true,
-        to_be_read = true,
+        to_be_read = true, already_read = true,
         home = true,
     }
 
@@ -1573,7 +1587,7 @@ local function apply_navbar()
         series = true,
         languages = true,
         tags = true,
-        to_be_read = true,
+        to_be_read = true, already_read = true,
         home = true,
         history = true,
         favorites = true,
@@ -2248,7 +2262,7 @@ local function apply_navbar()
         series = true,
         languages = true,
         tags = true,
-        to_be_read = true,
+        to_be_read = true, already_read = true,
         home = true,
         authors_detail = true,
         series_detail = true,
@@ -2994,6 +3008,7 @@ local function apply_navbar()
                 or menu.name == "languages"
                 or menu.name == "tags"
                 or menu.name == "to_be_read"
+                or menu.name == "already_read"
                 or menu.name == "authors_detail"
                 or menu.name == "series_detail"
                 or menu.name == "languages_detail"
