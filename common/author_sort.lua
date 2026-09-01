@@ -16,10 +16,13 @@ end
 function M.key(name, mode)
     local text = tostring(name or ""):match("^%s*(.-)%s*$")
     local last, first = text:match("^([^,]+),%s*(.+)$")
-    if not last then first, last = text:match("^(.*)%s+(%S+)$") end
+    if not last then
+        first, last = text:match("^(.-)%s+(%S+%s+%S+)$")
+        if not last then first, last = text:match("^(.*)%s+(%S+)$") end
+    end
     first, last = first or text, last or text
     if mode == "authors_last" then return last end
-    -- ponytail: Final-word surnames; use structured metadata if prefixes/suffixes must be exact.
+    -- ponytail: Final-two-word surnames; structured metadata is needed for universal parsing.
     return first
 end
 

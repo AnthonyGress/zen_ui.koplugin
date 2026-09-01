@@ -468,6 +468,8 @@ describe("file browser group views", function()
             authors = {
                 { author = "Octavia Butler", files = { "/o.epub" } },
                 { author = "Jane Austen", files = { "/j.epub" } },
+                { author = "Alice Klein", files = { "/a.epub" } },
+                { author = "Gabriel García Márquez", files = { "/g.epub" } },
             },
         })
         package.loaded.device.isTouchDevice = function() return true end
@@ -484,9 +486,11 @@ describe("file browser group views", function()
 
         assert.are.equal("authors_last", config.group_view.authors_collate)
         assert.are.equal(1, home_rebuilds)
-        assert.are.same({ "Jane Austen", "Octavia Butler" }, {
+        assert.are.same({ "Jane Austen", "Octavia Butler", "Gabriel García Márquez", "Alice Klein" }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
+            menu.item_table[3].text,
+            menu.item_table[4].text,
         })
 
         menu:onZenGroupBlankHold()
@@ -498,9 +502,11 @@ describe("file browser group views", function()
         assert.is_true(config.group_view.group_reverse.authors)
         assert.are.equal(2, home_rebuilds)
         assert.are.equal(2, saved)
-        assert.are.same({ "Octavia Butler", "Jane Austen" }, {
+        assert.are.same({ "Alice Klein", "Gabriel García Márquez", "Octavia Butler", "Jane Austen" }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
+            menu.item_table[3].text,
+            menu.item_table[4].text,
         })
         assert.are.equal(3, menu.update_count)
     end)
