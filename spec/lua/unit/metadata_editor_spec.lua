@@ -1052,6 +1052,7 @@ describe("metadata editor Hardcover merge", function()
             COLOR_LIGHT_GRAY = 3,
         })
         ZenSpec.replace("device", {
+            isTouchDevice = function() return true end,
             screen = {
                 getWidth = function() return 600 end,
                 getHeight = function() return 800 end,
@@ -1075,6 +1076,10 @@ describe("metadata editor Hardcover merge", function()
                 options.paintTo = function() end
                 return options
             end,
+        })
+        ZenSpec.replace("common/ui/zen_button", {
+            paintFilled = function() end,
+            paintOutlined = function() end,
         })
         for _i, name in ipairs({
             "ui/widget/button",
@@ -1266,6 +1271,12 @@ describe("metadata editor Hardcover merge", function()
         assert.are.equal("Open with…", widget._action_buttons[1].text)
         assert.are.equal("Find metadata", widget._action_buttons[2].text)
         assert.are.equal("Restore", widget._action_buttons[3].text)
+        local focus_rects = 0
+        local button = widget._action_buttons[1]
+        button.dimen = { w = button.width, h = button.height }
+        button:onFocus()
+        button:paintTo({ invertRect = function() focus_rects = focus_rects + 1 end }, 0, 0)
+        assert.are.equal(4, focus_rects)
         widget._restore_button.callback()
         assert.are.equal(1, restores)
     end)
@@ -1309,6 +1320,15 @@ describe("metadata editor Hardcover merge", function()
         local authors = details[4][3]
         local series = details[6][3]
         local filename = details[14][3]
+        local cover = content[1][2]
+        local focus_rects = 0
+        local focus_bounds
+        local bb = {
+            invertRect = function(_self, x, y, width, height)
+                focus_rects = focus_rects + 1
+                focus_bounds = focus_bounds or { x = x, y = y, w = width, h = height }
+            end,
+        }
 
         assert.are.equal(7, #widget._field_focus_rows)
         assert.are.equal(7, title[1].radius)
@@ -1320,15 +1340,80 @@ describe("metadata editor Hardcover merge", function()
         widget.getFocusItem = function() return title end
         assert.is_true(title:onFocus())
         assert.is_true(title.focused)
-        assert.is_true(title[1].invert)
+        title:paintTo(bb, 0, 0)
+        assert.are.equal(4, focus_rects)
+        assert.are.same({ x = -2, y = -2, w = title.dimen.w + 4, h = 2 }, focus_bounds)
+        widget.getFocusItem = function() return cover end
+        assert.is_true(cover:onFocus())
+        cover:paintTo(bb, 0, 0)
+        assert.are.equal(8, focus_rects)
         title:onTapField()
         authors:onTapField()
         series:onTapField()
         filename:onTapField()
-        content[1][2]:onTapCover()
+        cover:onTapCover()
 
         assert.are.same({ "title", "authors", "series", "filename" }, edits)
         assert.are.equal(1, cover_taps)
+    end)
+
+    it("focuses every editor control on touch-capable D-pad runtimes", function()
+        local widget = editor({ title = "Book" })
+        local back, close = {}, {}
+        local details = {
+            entry = { _metadata_key = "details" },
+            onUnfocus = function(self) self.unfocused = true end,
+        }
+        local description = { entry = { _metadata_key = "description" } }
+        local cover = { onFocus = function(self) self.focused = true end }
+        local title = { _metadata_key = "title", onFocus = function() end }
+        local authors = { _metadata_key = "authors", onFocus = function(self)
+            self.focused = true
+        end }
+        local open_with, find_metadata = { enabled = true }, { enabled = true }
+        widget.layout = { { details }, { description } }
+        widget.selected = { x = 1, y = 1 }
+        widget.title_bar = {
+            installFocusLayout = function(_self, owner)
+                table.insert(owner.layout, 1, { back, close })
+                owner.selected.y = owner.selected.y + 1
+            end,
+        }
+        widget._cover_focus = cover
+        widget._field_focus_rows = { { title }, { authors } }
+        widget._action_buttons = { open_with, find_metadata }
+        widget._metadata_focus_key = "authors"
+
+        widget:mergeTitleBarIntoLayout()
+
+        assert.are.same({ back, close }, widget.layout[1])
+        assert.are.equal(cover, widget.layout[2][1])
+        assert.are.equal(title, widget.layout[3][1])
+        assert.are.equal(authors, widget.layout[4][1])
+        assert.are.equal(description, widget.layout[5][1])
+        assert.are.same({ open_with, find_metadata }, widget.layout[6])
+        assert.are.same({ x = 1, y = 4 }, widget.selected)
+        assert.is_true(details.unfocused)
+        assert.is_true(authors.focused)
+
+        widget.getFocusItem = function(self)
+            return self.layout[self.selected.y][self.selected.x]
+        end
+        widget.getFocusableWidgetXY = function(self, target)
+            for y, row in ipairs(self.layout) do
+                for x, item in ipairs(row) do
+                    if item == target then return x, y end
+                end
+            end
+        end
+        widget.moveFocusTo = function(self, x, y)
+            self.selected.x, self.selected.y = x, y
+            return true
+        end
+        assert.is_true(widget:onFocusMove({ -1, 0 }))
+        assert.are.same({ x = 1, y = 2 }, widget.selected)
+        assert.is_true(widget:onFocusMove({ 1, 0 }))
+        assert.are.same({ x = 1, y = 4 }, widget.selected)
     end)
 
     it("opens current and staged covers fullscreen", function()
@@ -1446,13 +1531,11 @@ describe("metadata editor Hardcover merge", function()
         assert.is_true(no_recalculate)
     end)
 
-    it("moves between title actions in physical RTL direction", function()
+    it("moves between horizontal actions in physical RTL direction", function()
         local widget = editor({ title = "Book" })
         local move
-        widget.title_bar = {
-            containsFocus = function(_self, focused) return focused == "save" end,
-        }
-        widget.getFocusItem = function() return "save" end
+        widget.layout = { { "open", "save" } }
+        widget.selected = { x = 2, y = 1 }
         widget.onFocusMove = function(_self, delta)
             move = delta
             return true
@@ -1460,8 +1543,8 @@ describe("metadata editor Hardcover merge", function()
         package.loaded["ui/bidi"].mirroredUILayout = function() return true end
 
         assert.is_true(widget:onZenMetadataFocusLeft())
-        assert.are.same({ 1, 0 }, move)
-        assert.is_true(widget:onZenMetadataFocusRight())
         assert.are.same({ -1, 0 }, move)
+        assert.is_true(widget:onZenMetadataFocusRight())
+        assert.are.same({ 1, 0 }, move)
     end)
 end)

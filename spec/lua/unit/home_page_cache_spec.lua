@@ -937,6 +937,13 @@ describe("home data and book caches", function()
         assert.are.equal(1, resumes)
     end)
 
+    it("declines tag-strip navigation when Home has no book strip", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        set_home_menu(Home, { _zen_home_has_strip = false })
+
+        assert.is_false(Home.showTagInStrip("Science"))
+    end)
+
     it("refreshes a stale retained navbar before resuming Home", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local UIManager = require("ui/uimanager")

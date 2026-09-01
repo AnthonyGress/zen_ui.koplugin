@@ -987,6 +987,7 @@ local function apply_page_browser()
             local function open_book_info()
                 require("modules/reader/book_details").show(pbw_ref.ui, {
                     config = _plugin_ref and _plugin_ref.config,
+                    plugin = _plugin_ref,
                     close_all_callback = function() pbw_ref:onClose() end,
                 })
             end

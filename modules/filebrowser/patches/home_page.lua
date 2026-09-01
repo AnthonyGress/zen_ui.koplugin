@@ -3213,6 +3213,7 @@ function M.showHomeView(injectNavbar)
     menu._zen_home_screen_height = Screen:getHeight()
 
     local rows = resolve_rows(dcfg)
+    menu._zen_home_has_strip = rows_have_component(rows, "strip")
     local data_provider = build_data_provider(cfg, dcfg, _home_strip_page_state)
     local function remember_strip_pages()
         if data_provider and type(data_provider.getStripPageState) == "function" then
@@ -3451,6 +3452,7 @@ function M.showHomeView(injectNavbar)
             end
         end
         rows = resolve_rows(dcfg)
+        self._zen_home_has_strip = rows_have_component(rows, "strip")
         has_clock_refreshers = rows_have_clock_refreshers(rows, dcfg)
         has_date_dependent = rows_have_date_dependent(rows)
         self._zen_home_has_clock_refreshers = has_clock_refreshers
@@ -3726,6 +3728,16 @@ function M.rebuildActive()
         return true
     end
     return false
+end
+
+function M.showTagInStrip(tag)
+    if type(tag) ~= "string" or tag == "" or not _home_menu
+            or _home_menu._zen_home_has_strip ~= true then return false end
+    local state = { source = { kind = "tag", value = tag } }
+    _home_menu._zen_home_strip_runtime = state
+    _home_strip_page_state = nil
+    save_home_strip_state(ensure_home_cfg(), state)
+    return M.rebuildActive()
 end
 
 function M.resetStripPages()

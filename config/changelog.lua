@@ -330,5 +330,6 @@ return {
         "Fix articles sorting in other languages",
         "Fix highlight menu overlap",
         "Fix guided tour bug when Zen mode toggle removed from controls",
+        "Fix final KOSync progress when finishing a book",
      }
 }

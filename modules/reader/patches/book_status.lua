@@ -15,6 +15,8 @@ local function apply_book_status()
     local book_status = require("common/book_status")
     local library_navigation = require("common/library_navigation")
     local utils = require("common/utils")
+    local Event = require("ui/event")
+    local UIManager = require("ui/uimanager")
 
     local _icons_dir
     local plugin_root = require("common/plugin_root")
@@ -65,6 +67,33 @@ local function apply_book_status()
         end
     end
 
+    -- Closing Book Status does not emit CloseDocument, so KOSync misses the final page.
+    if ok_reader_status and not ReaderStatus._zen_end_of_book_progress_sync
+            and type(ReaderStatus.onEndOfBook) == "function" then
+        ReaderStatus._zen_end_of_book_progress_sync = true
+        local original_onEndOfBook = ReaderStatus.onEndOfBook
+        function ReaderStatus:onEndOfBook(...)
+            local result = original_onEndOfBook(self, ...)
+            local status_widget = UIManager:getTopmostVisibleWidget()
+            if getmetatable(status_widget) == BookStatusWidget then
+                local original_onCloseWidget = status_widget.onCloseWidget
+                function status_widget:onCloseWidget(...)
+                    local kosync = self.ui and self.ui.kosync
+                    local settings = kosync and kosync.settings
+                    if self.summary and self.summary.status == "complete"
+                            and settings and settings.auto_sync
+                            and settings.username and settings.userkey then
+                        UIManager:broadcastEvent(Event:new("KOSyncPushProgress"))
+                    end
+                    if original_onCloseWidget then
+                        return original_onCloseWidget(self, ...)
+                    end
+                end
+            end
+            return result
+        end
+    end
+
     BookStatusWidget.getStatusContent = function(self, width)
         local _ = require("gettext")
         local Size = require("ui/size")
@@ -73,13 +102,11 @@ local function apply_book_status()
         local ZenIconButton = require("common/ui/zen_icon_button")
         local Button = require("ui/widget/button")
         local CenterContainer = require("ui/widget/container/centercontainer")
-        local Event = require("ui/event")
         local Geom = require("ui/geometry")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
         local HorizontalSpan = require("ui/widget/horizontalspan")
         local VerticalGroup = require("ui/widget/verticalgroup")
         local VerticalSpan = require("ui/widget/verticalspan")
-        local UIManager = require("ui/uimanager")
         local is_landscape = Screen:getScreenMode() == "landscape"
 
         -- Build a custom header row instead of TitleBar so both icons share the

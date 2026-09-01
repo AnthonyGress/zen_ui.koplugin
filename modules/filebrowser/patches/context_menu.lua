@@ -1715,6 +1715,8 @@ local function apply_context_menu()
                             close_dialog()
                             require("modules/reader/book_details").showFile(file, {
                                 config = zen_plugin and zen_plugin.config,
+                                plugin = zen_plugin,
+                                home_context = item._zen_home_context == true,
                             })
                         end,
                     },

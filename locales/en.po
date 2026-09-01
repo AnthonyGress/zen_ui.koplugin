@@ -2666,6 +2666,11 @@ msgstr "Navbar label size"
 msgid "Navbar Tabs"
 msgstr "Navbar Tabs"
 
+#. Context: navigate_to_tag = _("Navigate to tag"),
+#: library_settings.lua:1506
+msgid "Navigate to tag"
+msgstr ""
+
 #. Context: main = _("Main menu"), navi = _("Navigation"), search = _("Search"),
 #: native_menu.lua:8
 msgid "Navigation"
@@ -2945,6 +2950,11 @@ msgstr "Not enough Home space: %1/%2 units used; this widget needs %3."
 #: metadata_editor.lua:30 metadata_settings.lua:11
 msgid "Not set"
 msgstr "Not set"
+
+#. Context: { id = "note", label = _("Note") }, { id = "pages", label = _("Pages") },
+#: library_settings.lua:1506
+msgid "Note"
+msgstr ""
 
 #. Context: local text = Dispatcher:menuTextFunc(entry.action) if text and text ~= "" and text ~= _("Nothing") then return icon_utils.stripZenPrefix(text)
 #: app_launcher_settings.lua:158 menu_settings.lua:727 home_settings.lua:1346 navbar_settings.lua:314
@@ -3380,6 +3390,11 @@ msgstr "RAM usage"
 #: stats_page.lua:1426 stats_settings.lua:116
 msgid "Range"
 msgstr "Range"
+
+#. Context: { id = "rating", label = _("Rating") }, { id = "annotations", label = _("Annotations") },
+#: library_settings.lua:1504
+msgid "Rating"
+msgstr ""
 
 #. Context: -- cancel = Read now (left), ok = Done (right) cancel_text = "\u{F0B63} " .. _("Read now"), cancel_callback = function()
 #: opds.lua:1625

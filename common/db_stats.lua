@@ -209,14 +209,15 @@ function StatsDB.queryBookAveragePageTime(path, md5)
     local stmt
     local ok, result = pcall(function()
         stmt = conn:prepare([[
-            SELECT count(*), sum(page_duration), (
+            SELECT count(*), sum(page_duration), sum(read_duration), (
                 SELECT pages FROM book
                 WHERE md5 = ?
                 ORDER BY last_open DESC
                 LIMIT 1
             )
             FROM (
-                SELECT min(sum(duration), ?) AS page_duration
+                SELECT min(sum(duration), ?) AS page_duration,
+                       sum(duration) AS read_duration
                 FROM page_stat
                 WHERE id_book = (
                     SELECT id FROM book
@@ -238,9 +239,10 @@ function StatsDB.queryBookAveragePageTime(path, md5)
     end
     local pages = result and tonumber(result[1]) or 0
     local duration = result and tonumber(result[2]) or 0
-    local total_pages = result and tonumber(result[3]) or nil
-    if pages <= 0 or duration <= 0 then return nil, total_pages end
-    return duration / pages, total_pages
+    local read_time = result and tonumber(result[3]) or nil
+    local total_pages = result and tonumber(result[4]) or nil
+    if pages <= 0 or duration <= 0 then return nil, total_pages, read_time end
+    return duration / pages, total_pages, read_time
 end
 
 function StatsDB.queryBookDetails(stats_plugin, fields)

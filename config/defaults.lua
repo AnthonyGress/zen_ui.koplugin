@@ -245,6 +245,25 @@ local defaults = {
         font_face = library_font_default,
         font_size = 18,
     },
+    book_details = {
+        order = {
+            "authors", "series", "tags", "language", "rating", "annotations",
+            "note", "pages", "progress", "read_time", "time_remaining",
+        },
+        authors = true,
+        series = true,
+        tags = true,
+        navigate_to_tag = false,
+        language = true,
+        rating = true,
+        annotations = true,
+        note = true,
+        pages = true,
+        progress = true,
+        read_time = false,
+        time_remaining = false,
+        description = true,
+    },
     zen_scroll_bar = {
         style              = "page_number",  -- "bar" | "dots" | "page_number"
         page_number_format = "total",  -- "current" | "total"

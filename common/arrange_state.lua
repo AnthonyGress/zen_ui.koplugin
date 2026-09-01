@@ -87,9 +87,14 @@ function M.moveTableItem(items, from, target)
             or type(items[from]) ~= "table" then
         return false
     end
+    if items[from].arrange_pinned_last then return false end
+    while target > 1 and items[target] and items[target].arrange_pinned_last do
+        target = target - 1
+    end
+    if target == from then return false end
     local item = table.remove(items, from)
     table.insert(items, target, item)
-    return true
+    return true, target
 end
 
 function M.stripSubmenuCaret(text)

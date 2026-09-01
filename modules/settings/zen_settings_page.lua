@@ -421,6 +421,7 @@ function ZenSettingsPage:_openSubmenu(item, items, defer_update)
     items._zen_title = item.sub_title or item_text(item)
     self.parent_id = nil
     self.item_table = items
+    self.page = 1
     if not defer_update then self:updateItems(1) end
     return true
 end

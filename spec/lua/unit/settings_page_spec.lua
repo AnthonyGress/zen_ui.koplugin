@@ -192,7 +192,9 @@ describe("Zen settings page", function()
         assert.are.equal("Library", library._zen_display_text)
         assert.is_true(library._zen_has_submenu)
 
+        settings.page = 2
         settings:onMenuSelect(library)
+        assert.are.equal(1, settings.page)
         assert.are.equal("Library", settings.title_bar.title)
         assert.is_true(settings.title_bar.back_visible)
         assert.is_true(settings.title_bar.search_visible)

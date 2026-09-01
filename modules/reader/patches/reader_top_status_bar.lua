@@ -519,22 +519,21 @@ local function apply_reader_top_status_bar()
             bb:paintRect(x + h_margin, y, line_w, line_h, Blitbuffer.COLOR_LIGHT_GRAY)
             local percent = getProgressRatio(doc_ctx)
             if percent and percent > 0 then
-                local progress_w = math.floor(line_w * percent + 0.5)
+                local progress_w = math.ceil(line_w * percent)
                 if progress_w > line_w then progress_w = line_w end
-                bb:paintRect(x + h_margin, y, progress_w, line_h, Blitbuffer.COLOR_BLACK)
+                bb:paintRect(x + h_margin, y, progress_w, line_h, Blitbuffer.COLOR_GRAY_5)
             end
             if cfg.show_chapter_marks == true then
                 local ticks, last = getChapterTicks(doc_ctx)
                 if ticks and last and last > 0 then
-                    local tick_w = math.max(1, Size.line.thin)
+                    local tick_w = Screen:scaleBySize(2)
                     for _i, tick in ipairs(ticks) do
                         local ratio = tonumber(tick) and tick / last or nil
                         if ratio and ratio >= 0 and ratio <= 1 then
                             local tick_x = math.floor(line_w * ratio)
                             if tick_x + tick_w > line_w then tick_x = line_w - tick_w end
-                            local color = percent and ratio <= percent
-                                and Blitbuffer.COLOR_LIGHT_GRAY or Blitbuffer.COLOR_BLACK
-                            bb:paintRect(x + h_margin + tick_x, y, tick_w, line_h, color)
+                            bb:paintRect(x + h_margin + tick_x, y, tick_w, line_h,
+                                Blitbuffer.COLOR_BLACK)
                         end
                     end
                 end

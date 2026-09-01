@@ -3,15 +3,29 @@ describe("statistics database", function()
     local row_values
     local sqls
     local flushes
+    local bound_values
 
     before_each(function()
         row_values = {}
         sqls = {}
         flushes = 0
+        bound_values = nil
         conn = {
             rowexec = function(_self, sql)
                 sqls[#sqls + 1] = sql
                 return unpack(row_values)
+            end,
+            prepare = function(_self, sql)
+                sqls[#sqls + 1] = sql
+                local stmt = {}
+                function stmt:reset() return self end
+                function stmt:bind(...)
+                    bound_values = { ... }
+                    return self
+                end
+                function stmt:step() return row_values end
+                function stmt:close() end
+                return stmt
             end,
             close = function() end,
         }
@@ -64,6 +78,20 @@ describe("statistics database", function()
         assert.is_nil(sqls[2]:find("book_stats AS", 1, true))
         assert.is_nil(sqls[2]:find("sum(duration) AS duration", 1, true))
         assert.are.same({ pages_today = 9 }, daily_pages)
+    end)
+
+    it("loads path-based average and total reading times together", function()
+        local StatsDB = require("common/db_stats")
+        row_values = { 10, 600, 900, 200 }
+
+        local average, pages, read_time = StatsDB.queryBookAveragePageTime(
+            "/books/test.epub", "book-hash")
+
+        assert.are.equal(60, average)
+        assert.are.equal(200, pages)
+        assert.are.equal(900, read_time)
+        assert.are.equal("book-hash", bound_values[1])
+        assert.are.equal("book-hash", bound_values[3])
     end)
 
     it("starts weekly home stats at local Sunday midnight", function()

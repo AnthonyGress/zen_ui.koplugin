@@ -108,4 +108,20 @@ describe("arrange state", function()
         assert.is_false(ArrangeState.moveTableItem(invalid, 2, 1))
         assert.are.equal(2, invalid[2])
     end)
+
+    it("keeps pinned trailing items last", function()
+        local items = {
+            { text = "One" },
+            { text = "Two" },
+            { text = "Description", arrange_pinned_last = true },
+        }
+        local moved, target = ArrangeState.moveTableItem(items, 1, 3)
+
+        assert.is_true(moved)
+        assert.are.equal(2, target)
+        assert.are.same({ "Two", "One", "Description" }, {
+            items[1].text, items[2].text, items[3].text,
+        })
+        assert.is_false(ArrangeState.moveTableItem(items, 3, 1))
+    end)
 end)

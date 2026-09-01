@@ -141,6 +141,19 @@ local function file_extension(file)
     return file_name(file):match("(%.[^.]*)$") or ""
 end
 
+local function paint_focus_rectangle(bb, x, y, width, height, outset)
+    outset = outset or 0
+    x, y = x - outset, y - outset
+    width, height = width + outset * 2, height + outset * 2
+    local line = math.max(1, Screen:scaleBySize(2))
+    bb:invertRect(x, y, width, line)
+    bb:invertRect(x, y + height - line, width, line)
+    if height > line * 2 then
+        bb:invertRect(x, y + line, line, height - line * 2)
+        bb:invertRect(x + width - line, y + line, line, height - line * 2)
+    end
+end
+
 local MetadataEditor = Menu:extend{}
 
 local CoverTap = InputContainer:extend{}
@@ -156,6 +169,10 @@ end
 function CoverTap:paintTo(bb, x, y)
     self.dimen.x, self.dimen.y = x, y
     self[1]:paintTo(bb, x, y)
+    if self.focused then
+        paint_focus_rectangle(bb, x, y, self.dimen.w, self.dimen.h,
+            Screen:scaleBySize(2))
+    end
 end
 
 function CoverTap:onTapCover()
@@ -175,6 +192,10 @@ end
 function FieldTap:paintTo(bb, x, y)
     self.dimen.x, self.dimen.y = x, y
     self[1]:paintTo(bb, x, y)
+    if self.focused then
+        paint_focus_rectangle(bb, x, y, self.dimen.w, self.dimen.h,
+            Screen:scaleBySize(2))
+    end
 end
 
 function FieldTap:onTapField()
@@ -185,7 +206,6 @@ end
 function FieldTap:onFocus()
     if self.editor.getFocusItem and self.editor:getFocusItem() ~= self then return false end
     self.focused = true
-    self[1].invert = true
     UIManager:setDirty(self.editor, "fast", self.dimen)
     return true
 end
@@ -193,10 +213,12 @@ end
 function FieldTap:onUnfocus()
     if not self.focused then return false end
     self.focused = false
-    self[1].invert = false
     UIManager:setDirty(self.editor, "fast", self.dimen)
     return true
 end
+
+CoverTap.onFocus = FieldTap.onFocus
+CoverTap.onUnfocus = FieldTap.onUnfocus
 
 local function zen_button(options, filled, radius)
     local button = Button:new(options)
@@ -212,6 +234,10 @@ local function zen_button(options, filled, radius)
             ZenButton.paintOutlined(bb, x, y, self.dimen.w, self.dimen.h,
                 self.text, self.text_font_size, radius, Screen:scaleBySize(1),
                 max_text_width)
+        end
+        if self._zen_focused then
+            paint_focus_rectangle(bb, x, y, self.dimen.w, self.dimen.h,
+                Screen:scaleBySize(2))
         end
     end
     button.onFocus = function(self)
@@ -421,6 +447,7 @@ function MetadataEditor:_bookDetailsContent(width, height, _face, enabled)
         local field = FieldTap:new{
             editor = self,
             enabled = enabled,
+            _metadata_key = key,
             callback = key == "filename"
                 and function() self:_editFilename() end
                 or function() self:_editField(key) end,
@@ -478,13 +505,18 @@ function MetadataEditor:_bookDetailsContent(width, height, _face, enabled)
     add_row(_("Language"), "language", self.draft.language)
     if self.is_epub then add_row(_("Publisher"), "publisher", self.draft.publisher) end
     add_row(_("Filename"), "filename", file_name(self.file))
+    self._cover_focus = CoverTap:new{
+        editor = self,
+        _metadata_key = "cover",
+        thumbnail,
+    }
     return CenterContainer:new{
         dimen = Geom:new{ w = width, h = height },
         HorizontalGroup:new{
             align = "center",
             allow_mirroring = false,
             HorizontalSpan:new{ width = IconItem.getSettingsLeftPadding() },
-            CoverTap:new{ editor = self, thumbnail },
+            self._cover_focus,
             HorizontalSpan:new{ width = gap },
             details,
         },
@@ -750,9 +782,35 @@ function MetadataEditor:mergeTitleBarIntoLayout()
     if self.title_bar and self.title_bar.installFocusLayout then
         self.title_bar:installFocusLayout(self)
     end
-    if not Device:isTouchDevice() then
-        for _i, row in ipairs(self._field_focus_rows or {}) do
-            table.insert(self.layout, row)
+    local details_index
+    for index, row in ipairs(self.layout) do
+        local item = row[1]
+        if item and item.entry and item.entry._metadata_key == "details" then
+            details_index = index
+            break
+        end
+    end
+    if details_index and self._cover_focus then
+        local details = self.layout[details_index][1]
+        local details_focused = self.selected and self.selected.y == details_index
+        if details_focused and details.onUnfocus then details:onUnfocus() end
+        self.layout[details_index] = { self._cover_focus }
+        for index, row in ipairs(self._field_focus_rows or {}) do
+            table.insert(self.layout, details_index + index, row)
+        end
+        if self.selected and self.selected.y > details_index then
+            self.selected.y = self.selected.y + #(self._field_focus_rows or {})
+        elseif details_focused then
+            local target = self._cover_focus
+            local target_y = details_index
+            for index, row in ipairs(self._field_focus_rows or {}) do
+                if row[1]._metadata_key == self._metadata_focus_key then
+                    target, target_y = row[1], details_index + index
+                    break
+                end
+            end
+            self.selected.x, self.selected.y = 1, target_y
+            target:onFocus()
         end
     end
     local buttons = {}
@@ -762,25 +820,54 @@ function MetadataEditor:mergeTitleBarIntoLayout()
     if #buttons > 0 then
         table.insert(self.layout, buttons)
     end
+    self._metadata_focus_key = nil
 end
 
-function MetadataEditor:_isTitleControlFocused()
+function MetadataEditor:_isHorizontalFocusRow()
+    local row = self.layout and self.selected and self.layout[self.selected.y]
+    return row and #row > 1 or false
+end
+
+function MetadataEditor:_moveDetailsFocus(direction)
     local focused = self.getFocusItem and self:getFocusItem()
-    return self.title_bar and self.title_bar.containsFocus
-        and self.title_bar:containsFocus(focused) or false
+    local target
+    if direction < 0 and focused and focused ~= self._cover_focus
+            and focused._metadata_key then
+        self._metadata_last_field_key = focused._metadata_key
+        target = self._cover_focus
+    elseif direction > 0 and focused == self._cover_focus then
+        for _i, row in ipairs(self._field_focus_rows or {}) do
+            if row[1]._metadata_key == self._metadata_last_field_key then
+                target = row[1]
+                break
+            end
+        end
+        target = target or (self._field_focus_rows[1] and self._field_focus_rows[1][1])
+    end
+    if not target then return false end
+    local x, y = self:getFocusableWidgetXY(target)
+    return x and y and self:moveFocusTo(x, y) or false
+end
+
+function MetadataEditor:onFocusMove(args)
+    local direction = args and args[1] or 0
+    if direction ~= 0 and self:_moveDetailsFocus(direction) then return true end
+    return Menu.onFocusMove(self, args)
 end
 
 function MetadataEditor:onZenMetadataFocusLeft()
-    if self:_isTitleControlFocused() then
-        return self:onFocusMove({ BD.mirroredUILayout() and 1 or -1, 0 })
+    if self:_isHorizontalFocusRow() then
+        return self:onFocusMove({ -1, 0 })
     end
+    if self:_moveDetailsFocus(-1) then return true end
     return self:_requestClose(false)
 end
 
 function MetadataEditor:onZenMetadataFocusRight()
-    if self:_isTitleControlFocused() then
-        return self:onFocusMove({ BD.mirroredUILayout() and -1 or 1, 0 })
+    if self:_isHorizontalFocusRow() then
+        return self:onFocusMove({ 1, 0 })
     end
+    if self:_moveDetailsFocus(1) then return true end
     return Menu.onRight(self)
 end
 
@@ -903,6 +990,7 @@ function MetadataEditor:onScreenResize()
 end
 
 function MetadataEditor:_refresh(key)
+    self._metadata_focus_key = key
     self.item_table = self:_buildItems()
     self:_syncTitleAction()
     self:_updateMetadataHeader()

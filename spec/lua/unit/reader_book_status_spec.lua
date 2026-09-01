@@ -39,6 +39,9 @@ describe("reader book status", function()
     local screen_mode
     local screen_width
     local saved_default_tab_icon
+    local top_widget
+    local broadcast_events
+    local close_widget_calls
 
     local function widget_class()
         return {
@@ -108,6 +111,9 @@ describe("reader book status", function()
         screen_mode = "portrait"
         screen_width = 400
         invalidated = {}
+        top_widget = nil
+        broadcast_events = {}
+        close_widget_calls = 0
         saved_default_tab_icon = rawget(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON")
 
         BookStatusWidget = {
@@ -120,10 +126,21 @@ describe("reader book status", function()
                 self.changed_status = true
                 return true
             end,
+            onCloseWidget = function()
+                close_widget_calls = close_widget_calls + 1
+            end,
         }
+        BookStatusWidget.__index = BookStatusWidget
         ReaderStatus = {
             markBook = function(self)
                 self.marked = true
+                return true
+            end,
+            onEndOfBook = function(self)
+                top_widget = setmetatable({
+                    ui = self.ui,
+                    summary = self.summary,
+                }, BookStatusWidget)
                 return true
             end,
         }
@@ -171,6 +188,10 @@ describe("reader book status", function()
         ZenSpec.replace("ui/uimanager", {
             close = function() closed = closed + 1 end,
             scheduleIn = function(_, _, callback) callback() end,
+            getTopmostVisibleWidget = function() return top_widget end,
+            broadcastEvent = function(_, event)
+                broadcast_events[#broadcast_events + 1] = event.name
+            end,
         })
         ZenSpec.replace("common/ui/zen_icon_button", {
             new = function(_, values)
@@ -308,5 +329,33 @@ describe("reader book status", function()
         assert.is_true(reader_status.marked)
         assert.is_true(status_widget.changed_status)
         assert.same({ "/books/end.epub", "/books/manual.epub" }, invalidated)
+    end)
+
+    it("pushes finished end-of-book progress only when automatic KOSync is configured", function()
+        require("modules/reader/patches/book_status")()
+        local settings = {
+            auto_sync = true,
+            username = "reader",
+            userkey = "key",
+        }
+        local reader_status = {
+            ui = { kosync = { settings = settings } },
+            summary = { status = "complete" },
+        }
+
+        assert.is_true(ReaderStatus.onEndOfBook(reader_status))
+        top_widget:onCloseWidget()
+        assert.same({ "KOSyncPushProgress" }, broadcast_events)
+
+        reader_status.summary = { status = "reading" }
+        ReaderStatus.onEndOfBook(reader_status)
+        top_widget:onCloseWidget()
+        settings.auto_sync = false
+        reader_status.summary = { status = "complete" }
+        ReaderStatus.onEndOfBook(reader_status)
+        top_widget:onCloseWidget()
+
+        assert.same({ "KOSyncPushProgress" }, broadcast_events)
+        assert.are.equal(3, close_widget_calls)
     end)
 end)

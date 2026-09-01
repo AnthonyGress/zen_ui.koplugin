@@ -18,6 +18,7 @@ local zen_settings_utils  = require("modules/settings/zen_settings_utils")
 
 local M = {}
 local DEFAULT_LIBRARY_FONT = defaults.library_font.font_face
+local BOOK_DETAIL_ORDER = defaults.book_details.order
 local home_rebuild_pending = false
 local home_rebuild_poll_active = false
 local bg_surface_refresh_pending = false
@@ -1493,6 +1494,113 @@ function M.build(ctx)
     IconItem.decorate(items[8], icons.settings_background)
     IconItem.decorate(items[9], icons.settings_home_folder)
     table.insert(items, table.remove(items, 3))
+
+    local detail_labels = {
+        authors = _("Authors"),
+        series = _("Series"),
+        tags = _("Tags"),
+        language = _("Language"),
+        rating = _("Rating"),
+        annotations = _("Annotations"),
+        note = _("Note"),
+        navigate_to_tag = _("Navigate to tag"),
+        pages = _("Pages"),
+        progress = _("Progress"),
+        read_time = _("Read time"),
+        time_remaining = _("Time remaining"),
+        description = _("Description"),
+    }
+    local function normalize_detail_order(order)
+        local normalized, seen, valid = {}, {}, {}
+        for _i, id in ipairs(BOOK_DETAIL_ORDER) do valid[id] = true end
+        for _i, id in ipairs(type(order) == "table" and order or {}) do
+            if valid[id] and not seen[id] then
+                normalized[#normalized + 1], seen[id] = id, true
+            end
+        end
+        for _i, id in ipairs(BOOK_DETAIL_ORDER) do
+            if not seen[id] then normalized[#normalized + 1] = id end
+        end
+        return normalized
+    end
+    local function detail_toggle(id)
+        local default_enabled = defaults.book_details[id] == true
+        local function is_enabled()
+            local cfg = type(config.book_details) == "table"
+                and config.book_details or {}
+            if type(cfg[id]) == "boolean" then return cfg[id] end
+            return default_enabled
+        end
+        return {
+            text = detail_labels[id],
+            orig_item = id,
+            checked_func = is_enabled,
+            callback = function()
+                if type(config.book_details) ~= "table" then
+                    config.book_details = {}
+                end
+                config.book_details[id] = not is_enabled()
+                plugin:saveConfig()
+            end,
+        }
+    end
+
+    local function show_book_details()
+        if type(config.book_details) ~= "table" then config.book_details = {} end
+        local cfg = config.book_details
+        cfg.order = normalize_detail_order(cfg.order)
+        local sort_items = {}
+        for _i, id in ipairs(cfg.order) do
+            local item = detail_toggle(id)
+            if id == "tags" then
+                item.sub_title = detail_labels[id]
+                item.sub_item_table = { detail_toggle("navigate_to_tag") }
+            end
+            sort_items[#sort_items + 1] = item
+        end
+        local description_item = detail_toggle("description")
+        description_item.arrange_pinned_last = true
+        sort_items[#sort_items + 1] = description_item
+        require("common/ui/zen_arrange_list").show{
+            title = _("Book details"),
+            item_table = sort_items,
+            plugin = plugin,
+            callback = function()
+                local order = {}
+                for _i, item in ipairs(sort_items) do
+                    if item.orig_item ~= "description" then
+                        order[#order + 1] = item.orig_item
+                    end
+                end
+                cfg.order = normalize_detail_order(order)
+                plugin:saveConfig()
+            end,
+        }
+    end
+
+    local function detail_search_items()
+        local search_items = {}
+        local function add(id)
+            search_items[#search_items + 1] = {
+                text = detail_labels[id],
+                orig_item = id,
+                _zen_search_open = show_book_details,
+            }
+        end
+        for _i, id in ipairs(BOOK_DETAIL_ORDER) do add(id) end
+        for _i, id in ipairs({ "navigate_to_tag", "description" }) do
+            add(id)
+        end
+        return search_items
+    end
+
+    table.insert(items, IconItem.decorate({
+        text = _("Book details"),
+        _zen_settings_submenu = true,
+        _zen_search_items_func = detail_search_items,
+        keep_menu_open = true,
+        callback = show_book_details,
+    }, icons.details))
 
     return items
 end

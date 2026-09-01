@@ -179,6 +179,7 @@ describe("reader top status bar refresh", function()
             end,
             COLOR_BLACK = "black",
             COLOR_DARK_GRAY = "dark_gray",
+            COLOR_GRAY_5 = "gray_5",
             COLOR_LIGHT_GRAY = "light_gray",
             COLOR_WHITE = "white",
         })
@@ -428,7 +429,7 @@ describe("reader top status bar refresh", function()
         assert.are.equal(1, #scheduled)
     end)
 
-    it("paints chapter ticks on the shared progress border", function()
+    it("paints footer-style progress and chapter ticks on the shared border", function()
         local view = make_view()
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.show_bottom_border = true
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.bottom_border_progress = true
@@ -447,8 +448,9 @@ describe("reader top status bar refresh", function()
 
         ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
 
-        assert.same({ x = 126, y = 20, w = 1, h = 1, color = "light_gray" }, paint_rects[3])
-        assert.same({ x = 474, y = 20, w = 1, h = 1, color = "black" }, paint_rects[4])
+        assert.same({ x = 10, y = 20, w = 290, h = 1, color = "gray_5" }, paint_rects[2])
+        assert.same({ x = 126, y = 20, w = 2, h = 1, color = "black" }, paint_rects[3])
+        assert.same({ x = 474, y = 20, w = 2, h = 1, color = "black" }, paint_rects[4])
     end)
 
     it("refreshes only the dynamic item's slot and restores the dogear", function()

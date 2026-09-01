@@ -619,6 +619,8 @@ describe("folder cover context-menu integration", function()
         local dialog = shown[#shown]
         assert(find_button(dialog, "Details")).callback()
         assert.is_nil(details_options.edit_callback)
+        assert.is_false(details_options.home_context)
+        assert.are.equal(_G.__ZEN_UI_PLUGIN, details_options.plugin)
         assert.is_nil(find_button(dialog, "Edit metadata"))
 
         assert(find_button(dialog, "Edit")).callback()
