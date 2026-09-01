@@ -341,7 +341,9 @@ local function apply_reader_top_status_bar()
     local function getProgressPercentItem(doc_ctx)
         local percent = getProgressRatio(doc_ctx)
         if not percent then return nil end
-        return string.format("%d%%", math.floor(percent * 100 + 0.5)), nil
+        local footer = getFooter(doc_ctx)
+        local digits = footer and footer.settings and footer.settings.progress_pct_format or "0"
+        return ("%." .. digits .. "f%%"):format(percent * 100), nil
     end
 
     local item_fetchers = {

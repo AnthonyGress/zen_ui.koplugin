@@ -380,6 +380,15 @@ describe("reader top status bar refresh", function()
         assert.are.equal("7 / 120", item_fetchers.page_progress(context))
     end)
 
+    it("uses the bottom status bar's progress percentage format", function()
+        local footer = {
+            ui = {},
+            percent_finished = 0.12345,
+            settings = { progress_pct_format = "2" },
+        }
+        assert.are.equal("12.35%", item_fetchers.progress_percent({ footer = footer }))
+    end)
+
     it("colors icon glyphs while keeping their labels in the reader text color", function()
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.colored = true
         local texts = collect_item_texts({ "battery" })
