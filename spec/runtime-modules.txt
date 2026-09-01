@@ -55,6 +55,7 @@ common/ui/background.lua|unit
 common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit
 common/ui/corner_banner.lua|unit
+common/ui/color_text_widget.lua|unit
 common/ui/folder_cover_picker.lua|unit
 common/ui/icon_menu_item.lua|unit
 common/ui/markdown_text.lua|unit

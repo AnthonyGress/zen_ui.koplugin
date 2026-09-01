@@ -116,6 +116,10 @@ describe("file manager status bar visibility", function()
         })
         replace("ui/widget/menu", {})
         replace("ui/widget/touchmenu", {})
+        original_modules["common/ui/color_text_widget"] = {
+            value = package.loaded["common/ui/color_text_widget"],
+        }
+        ZenSpec.unload("common/ui/color_text_widget")
         original_modules["modules/filebrowser/patches/status_bar"] = {
             value = package.loaded["modules/filebrowser/patches/status_bar"],
         }

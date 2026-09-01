@@ -70,7 +70,12 @@ describe("home data and book caches", function()
             register = function() return {} end,
             registerLoader = function() end,
         })
-        ZenSpec.replace("common/title_sort", { key = function(value) return tostring(value) end })
+        ZenSpec.replace("common/title_sort", {
+            key = function(value) return tostring(value) end,
+            less = function(first, second)
+                return tostring(first) < tostring(second)
+            end,
+        })
         ZenSpec.replace("common/widget_resources", {})
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("common/cover_decode_cache", {

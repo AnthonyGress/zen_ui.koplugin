@@ -505,6 +505,41 @@ describe("file browser group views", function()
         assert.are.equal(3, menu.update_count)
     end)
 
+    it("sorts series names without articles and persists natural title sorting", function()
+        install_group_view({
+            series = {
+                { series = "The Saga 10", items = { { file = "/ten.epub" } } },
+                { series = "Saga 2", items = { { file = "/two.epub" } } },
+                { series = "An Alpha", items = { { file = "/alpha.epub" } } },
+            },
+        })
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showSeriesView()
+        local menu = assert(find_menu("series"))
+        assert.are.same({ "An Alpha", "The Saga 10", "Saga 2" }, {
+            menu.item_table[1].text,
+            menu.item_table[2].text,
+            menu.item_table[3].text,
+        })
+
+        menu:onZenGroupBlankHold()
+        file_dialog_args._zen_sort_cb()
+        local sort_dialog = dialogs[#dialogs]
+        assert.is_false(sort_dialog.buttons[1][1].enabled)
+        assert.is_truthy(sort_dialog.buttons[2][1].text:find("Title natural", 1, true))
+        sort_dialog.buttons[2][1].callback()
+
+        assert.are.equal("title_natural", config.group_view.group_collate.series)
+        assert.are.same({ "An Alpha", "Saga 2", "The Saga 10" }, {
+            menu.item_table[1].text,
+            menu.item_table[2].text,
+            menu.item_table[3].text,
+        })
+        assert.are.equal(1, saved)
+        assert.are.equal(1, home_rebuilds)
+    end)
+
     it("opens series detail pages sorted by numeric series index", function()
         install_group_view({
             series = {
@@ -692,7 +727,7 @@ describe("file browser group views", function()
         end
     end)
 
-    it("persists tag-global collation and descending order from the page menu", function()
+    it("keeps the Tags page sort limited to tag names", function()
         install_group_view({
             tags = { { tag = "Classics", files = { "/book.epub" } } },
         })
@@ -703,18 +738,10 @@ describe("file browser group views", function()
         menu:onZenGroupBlankHold()
         file_dialog_args._zen_sort_cb()
         local sort_dialog = dialogs[#dialogs]
-        sort_dialog.buttons[5][1].callback()
-        assert.are.equal("access", config.group_view.tags_global.collate)
-
-        menu:onZenGroupBlankHold()
-        file_dialog_args._zen_sort_cb()
-        sort_dialog = dialogs[#dialogs]
-        sort_dialog.buttons[6][1].callback()
-        local order_dialog = dialogs[#dialogs]
-        order_dialog.buttons[2][1].callback()
-
-        assert.is_true(config.group_view.tags_global.reverse)
-        assert.are.equal(2, saved)
+        assert.are.equal(3, #sort_dialog.buttons)
+        assert.is_truthy(sort_dialog.buttons[1][1].text:find("Title", 1, true))
+        assert.is_truthy(sort_dialog.buttons[2][1].text:find("Title natural", 1, true))
+        assert.is_truthy(sort_dialog.buttons[3][1].text:find("Order", 1, true))
     end)
 
     it("restores root and detail pages after returning from the reader", function()

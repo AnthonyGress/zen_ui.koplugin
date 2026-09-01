@@ -324,6 +324,8 @@ return {
         "Add context to translations",
         "Add language in Zen Settings > About",
         "Add more toggles/options to Featured widget",
+        "Add colored icons to Reader top status bar",
+        "Reserve space in reflowable books (EPUB) for Reader top status bar",
         "Reset weekly stats on Sunday",
         "Fix articles sorting in other languages",
         "Fix highlight menu overlap",

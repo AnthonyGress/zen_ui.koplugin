@@ -1,6 +1,8 @@
 describe("reader top status bar refresh", function()
     local ReaderUI
+    local ReaderTypeset
     local ReaderView
+    local CreDocument
     local UIManager
     local saved_modules
     local saved_plugin
@@ -9,16 +11,25 @@ describe("reader top status bar refresh", function()
     local paint_rects
     local dirty_calls
     local paint_order
+    local item_fetchers
+    local collect_item_texts
+    local build_group_from_texts
+    local startup_reader
+    local disabled_reader
 
     local dependencies = {
         "apps/reader/modules/readerview",
+        "apps/reader/modules/readertypeset",
         "apps/reader/readerui",
         "common/inline_icon_map",
+        "common/ui/color_text_widget",
+        "common/reader_status_bar",
         "common/reader_themes",
         "common/utils",
         "common/zen_logger",
         "datetime",
         "device",
+        "document/credocument",
         "ffi/blitbuffer",
         "gettext",
         "ui/bidi",
@@ -58,6 +69,14 @@ describe("reader top status bar refresh", function()
             end
         end
         return false
+    end
+
+    local function get_upvalue(fn, target)
+        for index = 1, 40 do
+            local name, value = debug.getupvalue(fn, index)
+            if not name then break end
+            if name == target then return value end
+        end
     end
 
     local function reset_paint_log()
@@ -112,9 +131,24 @@ describe("reader top status bar refresh", function()
             onNetworkConnected = function() end,
             onNetworkDisconnected = function() end,
         }
-        ReaderView = { paintTo = function() end }
+        CreDocument = {
+            setPageMargins = function(self, left, top, right, bottom)
+                self.applied_margins = { left, top, right, bottom }
+            end,
+        }
+        ReaderTypeset = {
+            onSetPageMargins = function(self, margins)
+                CreDocument.setPageMargins(self.ui.document,
+                    margins[1], margins[2], margins[3], margins[4])
+            end,
+        }
+        ReaderView = {
+            paintTo = function() end,
+            onSetViewMode = function(self, new_mode) self.view_mode = new_mode end,
+        }
 
         replace("apps/reader/modules/readerview", ReaderView)
+        replace("apps/reader/modules/readertypeset", ReaderTypeset)
         replace("apps/reader/readerui", ReaderUI)
         replace("common/inline_icon_map", {})
         replace("common/reader_themes", {
@@ -126,18 +160,33 @@ describe("reader top status bar refresh", function()
             new = function() return { dbg = function() end } end,
         })
         replace("datetime", {})
-        replace("device", { screen = screen })
+        replace("device", {
+            screen = screen,
+            hasBattery = function() return true end,
+            getPowerDevice = function()
+                return {
+                    getCapacity = function() return 73 end,
+                    getBatterySymbol = function() return "B" end,
+                    isCharged = function() return false end,
+                    isCharging = function() return false end,
+                }
+            end,
+        })
+        replace("document/credocument", CreDocument)
         replace("ffi/blitbuffer", {
+            ColorRGB32 = function(red, green, blue)
+                return string.format("rgb:%d:%d:%d", red, green, blue)
+            end,
             COLOR_BLACK = "black",
             COLOR_DARK_GRAY = "dark_gray",
             COLOR_LIGHT_GRAY = "light_gray",
             COLOR_WHITE = "white",
         })
         replace("gettext", function(text) return text end)
-        replace("ui/bidi", {})
-        replace("ui/font", {})
+        replace("ui/bidi", { wrap = function(value) return value end })
+        replace("ui/font", { getFace = function() return {} end })
         replace("ui/geometry", geometry_class())
-        replace("ui/size", { line = { medium = 1 }, padding = { small = 2 } })
+        replace("ui/size", { line = { thin = 1, medium = 1 }, padding = { small = 2 } })
         replace("ui/uimanager", UIManager)
         for _i, name in ipairs({
             "ui/widget/container/centercontainer",
@@ -146,15 +195,49 @@ describe("reader top status bar refresh", function()
             "ui/widget/horizontalgroup",
             "ui/widget/horizontalspan",
             "ui/widget/linewidget",
-            "ui/widget/textwidget",
             "ui/widget/verticalgroup",
             "ui/widget/verticalspan",
         }) do
             replace(name, {})
         end
+        replace("ui/widget/horizontalgroup", {
+            new = function(_self, values) return values or {} end,
+        })
+        local function make_text_widget(values, is_color)
+            values = values or {}
+            values._is_color = is_color
+            values.getSize = function() return { w = 10, h = 18 } end
+            values.free = function() end
+            return values
+        end
+        replace("ui/widget/textwidget", {
+            new = function(_self, values) return make_text_widget(values, false) end,
+        })
+        replace("common/ui/color_text_widget", {
+            new = function(_self, values) return make_text_widget(values, true) end,
+        })
 
         G_reader_settings = ZenSpec.memorySettings({ footer = {} })
+        replace("common/reader_status_bar", {
+            disableKoreaderAltStatusBar = function(settings, reader)
+                settings = settings or G_reader_settings
+                settings:saveSetting("copt_status_line", 1)
+                settings:saveSetting("alt_status_bar", false)
+                disabled_reader = reader
+                reader.document.configurable.status_line = 1
+                reader.rolling:onSetStatusLine(1)
+            end,
+        })
+        startup_reader = {
+            document = { configurable = {} },
+            rolling = {
+                onSetStatusLine = function(_self, value)
+                    startup_reader.status_line = value
+                end,
+            },
+        }
         _G.__ZEN_UI_PLUGIN = {
+            ui = startup_reader,
             config = {
                 features = { reader_top_status_bar = true },
                 reader_top_status_bar = {
@@ -174,6 +257,10 @@ describe("reader top status bar refresh", function()
             center = { x = 250, y = 0, w = 100, h = 20 },
             right = { x = 500, y = 0, w = 100, h = 20 },
         }
+        local original_build_header = get_upvalue(ReaderView.paintTo, "buildHeader")
+        collect_item_texts = get_upvalue(original_build_header, "collectItemTexts")
+        build_group_from_texts = get_upvalue(original_build_header, "buildGroupFromTexts")
+        item_fetchers = get_upvalue(collect_item_texts, "item_fetchers")
         assert.is_true(replace_upvalue(ReaderView.paintTo, "buildHeader", function()
             return header, {}, 20, 600, slot_regions
         end))
@@ -192,6 +279,7 @@ describe("reader top status bar refresh", function()
         local view = {
             ui = ui,
             document = {},
+            view_mode = "page",
             dogear_visible = true,
             dogear = {
                 paintTo = function()
@@ -217,11 +305,149 @@ describe("reader top status bar refresh", function()
         assert.same({ "clear", "header", "dogear", "dirty" }, paint_order)
     end
 
+    local function make_typeset(view_mode)
+        local document = {}
+        local typeset = setmetatable({
+            ui = { document = document },
+            view = { view_mode = view_mode },
+            unscaled_margins = { 5, 10, 5, 12 },
+        }, { __index = ReaderTypeset })
+        return typeset, document
+    end
+
+    it("adds the measured height only to effective paged CRE margins", function()
+        local typeset, document = make_typeset("page")
+        assert.are.equal(1, G_reader_settings:readSetting("copt_status_line"))
+        assert.is_false(G_reader_settings:readSetting("alt_status_bar"))
+        assert.are.equal(1, startup_reader.document.configurable.status_line)
+        assert.are.equal(1, startup_reader.status_line)
+        assert.are.equal(startup_reader, disabled_reader)
+
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 30, 5, 12 }, document.applied_margins)
+        assert.are.equal(20, document._zen_top_status_bar_reserved_height)
+
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 30, 5, 12 }, document.applied_margins)
+
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.show_bottom_border = true
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 31, 5, 12 }, document.applied_margins)
+    end)
+
+    it("removes reserved space outside enabled paged CRE documents", function()
+        local typeset, document = make_typeset("scroll")
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 10, 5, 12 }, document.applied_margins)
+
+        typeset.view.view_mode = "page"
+        _G.__ZEN_UI_PLUGIN.config.features.reader_top_status_bar = false
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 10, 5, 12 }, document.applied_margins)
+    end)
+
+    it("reapplies base margins when switching page and scroll modes", function()
+        local typeset, document = make_typeset("page")
+        local view = { view_mode = "page", ui = { typeset = typeset } }
+        typeset.view = view
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.are.equal(30, document.applied_margins[2])
+
+        ReaderView.onSetViewMode(view, "scroll")
+        assert.are.equal(10, document.applied_margins[2])
+        ReaderView.onSetViewMode(view, "page")
+        assert.are.equal(30, document.applied_margins[2])
+    end)
+
+    it("exposes the granular alt-status-bar items alongside combined items", function()
+        local icon, icon_suffix = item_fetchers.battery_icon()
+        local percent = item_fetchers.battery_percent()
+        assert.are.equal("B", icon)
+        assert.is_nil(icon_suffix)
+        assert.are.equal("73%", percent)
+
+        local context = {
+            ui = {
+                document = {
+                    getCurrentPage = function() return 7 end,
+                    getPageCount = function() return 120 end,
+                    hasHiddenFlows = function() return false end,
+                },
+            },
+        }
+        assert.are.equal("7", item_fetchers.current_page(context))
+        assert.are.equal("120", item_fetchers.total_pages(context))
+        assert.are.equal("7 / 120", item_fetchers.page_progress(context))
+    end)
+
+    it("colors icon glyphs while keeping their labels in the reader text color", function()
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.colored = true
+        local texts = collect_item_texts({ "battery" })
+        assert.are.equal("rgb:51:170:85", texts[1].color)
+
+        local group, widgets = build_group_from_texts(texts, {}, "", 100)
+        assert.are.equal(2, #group)
+        assert.is_true(widgets[1]._is_color)
+        assert.are.equal("B", widgets[1].text)
+        assert.is_false(widgets[2]._is_color)
+        assert.are.equal("73%", widgets[2].text)
+
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.colored = false
+        assert.is_nil(collect_item_texts({ "battery" })[1].color)
+    end)
+
+    it("hides reflowable headers in scroll mode and keeps the fixed-layout overlay optional", function()
+        local view = make_view()
+        view._zen_header_dimen = nil
+        view.view_mode = "scroll"
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+        assert.is_nil(view._zen_header_dimen)
+
+        view.render_mode = 1
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.hide_in_cbz = true
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+        assert.is_nil(view._zen_header_dimen)
+
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.hide_in_cbz = false
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+        assert.is_not_nil(view._zen_header_dimen)
+    end)
+
+    it("refreshes autonomously without exposing a setting", function()
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.auto_refresh = false
+        make_view()
+        assert.are.equal(1, #scheduled)
+    end)
+
+    it("paints chapter ticks on the shared progress border", function()
+        local view = make_view()
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.show_bottom_border = true
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.bottom_border_progress = true
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.show_chapter_marks = true
+        view.footer = {
+            ui = view.ui,
+            pageno = 5,
+            pages = 10,
+            percent_finished = 0.5,
+        }
+        view.ui.document = {
+            getPageCount = function() return 10 end,
+            hasHiddenFlows = function() return false end,
+        }
+        view.ui.toc = { getTocTicksFlattened = function() return { 2, 8 } end }
+
+        ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
+
+        assert.same({ x = 126, y = 20, w = 1, h = 1, color = "light_gray" }, paint_rects[3])
+        assert.same({ x = 474, y = 20, w = 1, h = 1, color = "black" }, paint_rects[4])
+    end)
+
     it("refreshes only the dynamic item's slot and restores the dogear", function()
         make_view()
 
         scheduled[1].callback()
-        assert_single_slot(250)
+        assert.are.equal(2, #paint_rects)
+        assert.same({ 250, 500 }, { paint_rects[1].x, paint_rects[2].x })
 
         reset_paint_log()
         ReaderUI.onNetworkConnected({})
@@ -258,6 +484,7 @@ describe("reader top status bar refresh", function()
 
     it("uses the active reader theme background for a direct slot refresh", function()
         package.loaded["common/reader_themes"].getBackgroundColor = function() return "sepia" end
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.right_order = {}
         make_view()
 
         scheduled[1].callback()

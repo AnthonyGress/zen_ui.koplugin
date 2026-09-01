@@ -264,6 +264,8 @@ local defaults = {
         custom_text      = "",
         show_bottom_border = false,
         bottom_border_progress = false,
+        show_chapter_marks = false,
+        colored = false,
         hide_in_cbz = true,
     },
     reader_themes = {
@@ -317,6 +319,11 @@ local defaults = {
     group_view = {
         include_new_in_tbr = false,
         authors_collate = "authors",
+        group_collate = {
+            series = "title",
+            languages = "title",
+            tags = "title",
+        },
         display_mode = {
             authors = "list_image_meta",
             series = "list_image_meta",
@@ -334,6 +341,7 @@ local defaults = {
             authors = false,
             series = false,
             languages = false,
+            tags = false,
         },
         tags_global = {
             collate = "title",

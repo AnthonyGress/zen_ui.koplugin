@@ -5195,3 +5195,16 @@ msgstr "ZenPM"
 #: zenpm_installer.lua:397
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM is geïnstalleerd. Start KOReader opnieuw om het te gebruiken."
+
+#. Reader top status bar
+msgid "Battery icon"
+msgstr "Batterij-icoon"
+
+msgid "Battery percentage"
+msgstr "Batterijpercentage"
+
+msgid "Chapter marks"
+msgstr "Hoofdstukmarkeringen"
+
+msgid "Current page"
+msgstr "Huidige pagina"

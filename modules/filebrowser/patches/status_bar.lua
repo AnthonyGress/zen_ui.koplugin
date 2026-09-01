@@ -13,6 +13,7 @@ local function apply_status_bar()
     local OverlapGroup = require("ui/widget/overlapgroup")
     local RightContainer = require("ui/widget/container/rightcontainer")
     local TextWidget = require("ui/widget/textwidget")
+    local ColorTextWidget = require("common/ui/color_text_widget")
     local UIManager = require("ui/uimanager")
     local Screen = Device.screen
     local Blitbuffer = require("ffi/blitbuffer")
@@ -280,54 +281,6 @@ local function apply_status_bar()
     -- RAM usage cache
     local cached_ram_text = nil
     local cached_ram_time = 0
-
-    -- === Color text support ===
-    -- TextWidget.colorblitFrom is grayscale; colorblitFromRGB32 needed for color.
-
-    local RenderText = require("ui/rendertext")
-
-    local ColorTextWidget = TextWidget:extend{}
-
-    function ColorTextWidget:paintTo(bb, x, y)
-        self:updateSize()
-        if self._is_empty then return end
-
-        if not self.fgcolor or Blitbuffer.isColor8(self.fgcolor) or not Screen:isColorScreen() then
-            TextWidget.paintTo(self, bb, x, y)
-            return
-        end
-
-        if not self.use_xtext then
-            -- Fallback path: render normally (no RGB support here)
-            TextWidget.paintTo(self, bb, x, y)
-            return
-        end
-
-        if not self._xshaping then
-            self._xshaping = self._xtext:shapeLine(self._shape_start, self._shape_end,
-                                                self._shape_idx_to_substitute_with_ellipsis)
-        end
-
-        local text_width = bb:getWidth() - x
-        if self.max_width and self.max_width < text_width then
-            text_width = self.max_width
-        end
-        local pen_x = 0
-        local baseline = self.forced_baseline or self._baseline_h
-        for _i, xglyph in ipairs(self._xshaping) do
-            if pen_x >= text_width then break end
-            local face = self.face.getFallbackFont(xglyph.font_num)
-            local glyph = RenderText:getGlyphByIndex(face, xglyph.glyph, self.bold)
-            bb:colorblitFromRGB32(
-                glyph.bb,
-                x + pen_x + glyph.l + xglyph.x_offset,
-                y + baseline - glyph.t - xglyph.y_offset,
-                0, 0,
-                glyph.bb:getWidth(), glyph.bb:getHeight(),
-                self.fgcolor)
-            pen_x = pen_x + xglyph.x_advance
-        end
-    end
 
     -- === Color definitions ===
 

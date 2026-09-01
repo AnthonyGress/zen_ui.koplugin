@@ -2130,7 +2130,7 @@ local function apply_context_menu()
 
             if not is_file and is_not_parent_folder then
                 local SORT_OPTIONS = {
-                    { key = "title", text = "\u{F04BB}  " .. _("Title") },
+                    { key = "title", text = "\u{F031}  " .. _("Title") },
                     { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
                     { key = "strcoll", text = icons.filename .. "  " .. _("Filename") },
                     { key = "authors", text = "\u{F0013}  " .. _("Authors") },
