@@ -1001,8 +1001,9 @@ describe("file browser navbar navigation", function()
         assert.are.same({}, calls)
         assert.are.equal(3, fm.file_chooser.page)
         assert.are.equal(1, cover_resume_calls)
-        assert.are.equal(1, #next_ticks)
+        assert.are.equal(2, #next_ticks)
 
+        table.remove(next_ticks, 1)()
         table.remove(next_ticks, 1)()
         assert.are.same({}, calls)
         assert.is_nil(fm.file_chooser._zen_home_retained_library)
@@ -1648,6 +1649,27 @@ describe("file browser navbar navigation", function()
             reveal.details)
     end)
 
+    it("uses flashui between Library and Home", function()
+        local fm = make_instance()
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.item_table = { { path = "/library/Book.epub" } }
+        dir_mtimes["/library"] = 10
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        local flash_count = 0
+        UIManager.setDirty = function(_self, _widget, mode)
+            if mode == "flashui" then flash_count = flash_count + 1 end
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.equal(1, flash_count)
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.equal(2, flash_count)
+    end)
+
     it("reveals a reinitialized hidden FileManager before handling Library taps", function()
         local fm = make_instance()
         fm.invisible = true
@@ -1689,8 +1711,7 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm.invisible)
         assert.is_nil(fm._zen_hidden_home_startup)
         assert.are.same({
-            widget = fm,
-            mode = "ui",
+            mode = "flashui",
             top = fm,
         }, reveal)
         local top = UIManager._window_stack[#UIManager._window_stack].widget

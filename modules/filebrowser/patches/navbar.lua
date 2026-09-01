@@ -1650,7 +1650,14 @@ local function apply_navbar()
             return
         end
         if shouldTrackActiveTab(tab_id) then
+            local fm = FileManager.instance
+            local flash_library_home = fm and (
+                (tab_id == "home" and fm._zen_library_to_home_started_at)
+                or (tab_id == "books" and fm._zen_home_to_library_started_at))
             cb()
+            if flash_library_home then
+                UIManager:nextTick(function() UIManager:setDirty(nil, "flashui") end)
+            end
             if tab_id ~= "home" and not tabStaysInFileManager(tab_id) then
                 refreshAfterNavbarPageSwitch()
             end
