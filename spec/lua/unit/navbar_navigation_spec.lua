@@ -702,6 +702,23 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm._zen_hidden_home_startup)
     end)
 
+    it("does not request another repaint after setupLayout", function()
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "books"
+        local file_chooser = { path_items = {} }
+        local fm = {
+            root_path = "/library",
+            _test_setup_file_chooser = file_chooser,
+            { file_chooser },
+        }
+        FileManager.instance = fm
+        local dirty_calls = 0
+        UIManager.setDirty = function() dirty_calls = dirty_calls + 1 end
+
+        FileManager.setupLayout(fm)
+
+        assert.are.equal(0, dirty_calls)
+    end)
+
     it("defers hidden FileManager construction when restoring Home", function()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         _G.__ZEN_UI_LIBRARY_STATE = { tab = "home", page = 2 }

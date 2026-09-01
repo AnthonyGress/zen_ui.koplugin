@@ -1044,7 +1044,7 @@ local function apply_status_bar()
         return widget and widget._zen_home_show_status_bar == false
     end
 
-    function FileManager:_updateStatusBar()
+    function FileManager:_updateStatusBar(no_repaint)
         if not is_enabled() or home_without_status_bar_is_on_top() then
             return
         end
@@ -1109,7 +1109,7 @@ local function apply_status_bar()
         end
 
         local top_widget = topmost_non_toast_widget()
-        if FileManager.instance == self and self.invisible ~= true
+        if not no_repaint and FileManager.instance == self and self.invisible ~= true
                 and (top_widget == self or top_widget == self.show_parent) then
             -- Clear the full titlebar region so stale pixels from a previously
             -- wider right-side group don't leave ghosts.
@@ -1241,14 +1241,12 @@ local function apply_status_bar()
             orig_setupLayout(self)
         end
 
-        -- Build immediately so the first paint shows our custom row rather
-        -- than the placeholder title. Hidden instances do not repaint it.
-        self:_updateStatusBar()
+        -- Build immediately so KOReader's queued layout paint shows our custom row.
+        self:_updateStatusBar(true)
 
-        -- Defer again after all plugins (coverbrowser etc.) finish init
+        -- Finish titlebar setup after all plugins (coverbrowser etc.) initialize.
         local fm = self
         UIManager:nextTick(function()
-            refreshVisibleStatusBar(fm, false)
             -- Restore subtitle path only when subtitle widget exists
             if not config.hide_browser_bar and fm.file_chooser
                     and fm.file_chooser.path then

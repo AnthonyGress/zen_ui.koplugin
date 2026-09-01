@@ -35,6 +35,7 @@ local function apply_reader_top_status_bar()
     local CreDocument = require("document/credocument")
     local ReaderTypeset = require("apps/reader/modules/readertypeset")
     local ReaderView = require("apps/reader/modules/readerview")
+    local ReaderUI = require("apps/reader/readerui")
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
@@ -77,6 +78,9 @@ local function apply_reader_top_status_bar()
 
     -- Stable reference so suspend/resume can cancel/restart the timer.
     local _autoRefresh
+    local _charging_refresh_timer
+    local _resume_refresh_timer_1
+    local _resume_refresh_timer_2
     local RESUME_REFRESH_ITEMS = {
         "time", "wifi", "battery", "battery_icon", "battery_percent",
         "frontlight", "ram", "disk", "incognito",
@@ -575,19 +579,13 @@ local function apply_reader_top_status_bar()
         return Font:getFace(font_name, font_size)
     end
 
-    local function getReservedHeaderHeight()
-        if not is_enabled() then return 0 end
+    local function getReservedHeaderHeight(view)
+        if not is_enabled() or view.footer.reclaim_height then return 0 end
         local cfg = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
         local orders = getSlotOrders(cfg)
         if #orders.left == 0 and #orders.center == 0 and #orders.right == 0 then return 0 end
 
-        local probe = TextWidget:new{
-            text = " ",
-            face = getHeaderFace(cfg),
-            padding = 0,
-        }
-        local height = probe:getSize().h + Size.padding.small
-        probe:free()
+        local height = view.footer:getHeight()
         if type(cfg) == "table" and cfg.show_bottom_border == true then
             height = height + Size.line.medium
         end
@@ -917,6 +915,137 @@ local function apply_reader_top_status_bar()
         freeWidgets(all_widgets)
     end
 
+    local function activeReaderView(rui)
+        local reader = rui and rui.view and rui or ReaderUI.instance
+        return reader and reader.view
+    end
+
+    local function repaintActiveHeaderSlots(item_keys, rui)
+        local view = activeReaderView(rui)
+        if not (view and view.ui and view.ui.document) or not should_show(view) then return end
+        if is_view_active_top(view) then
+            repaintHeaderSlots(view, item_keys)
+        end
+    end
+
+    local function autoRefresh()
+        local view = activeReaderView()
+        if not (view and view.ui and view.ui.document) or not should_show(view) then
+            _autoRefresh = nil
+            return
+        end
+        if is_view_active_top(view) then
+            repaintHeaderSlots(view, MINUTE_REFRESH_ITEMS)
+        end
+        local t = os.date("*t")
+        UIManager:scheduleIn(60 - t.sec, autoRefresh)
+    end
+
+    local function armAutoRefresh()
+        if _autoRefresh then return end
+        _autoRefresh = autoRefresh
+        local t = os.date("*t")
+        UIManager:scheduleIn(60 - t.sec, _autoRefresh)
+    end
+
+    local function cancelRefreshTimers(clear_auto_refresh)
+        if _autoRefresh then
+            UIManager:unschedule(_autoRefresh)
+            if clear_auto_refresh then _autoRefresh = nil end
+        end
+        if _charging_refresh_timer then
+            UIManager:unschedule(_charging_refresh_timer)
+            _charging_refresh_timer = nil
+        end
+        if _resume_refresh_timer_1 then
+            UIManager:unschedule(_resume_refresh_timer_1)
+            _resume_refresh_timer_1 = nil
+        end
+        if _resume_refresh_timer_2 then
+            UIManager:unschedule(_resume_refresh_timer_2)
+            _resume_refresh_timer_2 = nil
+        end
+    end
+
+    local function scheduleChargingRefresh(rui)
+        local view = activeReaderView(rui)
+        if not should_show(view) then return end
+        if _charging_refresh_timer then
+            UIManager:unschedule(_charging_refresh_timer)
+        end
+        _charging_refresh_timer = function()
+            _charging_refresh_timer = nil
+            repaintActiveHeaderSlots({ "battery", "battery_icon", "battery_percent" })
+        end
+        UIManager:scheduleIn(1.5, _charging_refresh_timer)
+    end
+
+    if not ReaderUI._zen_top_status_bar_refresh_patched then
+        ReaderUI._zen_top_status_bar_refresh_patched = true
+
+        local orig_onSuspend = ReaderUI.onSuspend
+        ReaderUI.onSuspend = function(rui, ...)
+            if orig_onSuspend then orig_onSuspend(rui, ...) end
+            cancelRefreshTimers(false)
+        end
+
+        local orig_onResume = ReaderUI.onResume
+        ReaderUI.onResume = function(rui, ...)
+            if orig_onResume then orig_onResume(rui, ...) end
+            local view = activeReaderView(rui)
+            if not should_show(view) or not _autoRefresh then return end
+            DBG("onResume fired, _autoRefresh=armed",
+                "view._zen_header_dimen=", view._zen_header_dimen and "present" or "nil",
+                "view.ui=", view.ui and "present" or "nil")
+            UIManager:unschedule(_autoRefresh)
+            repaintActiveHeaderSlots(RESUME_REFRESH_ITEMS, rui)
+            if _resume_refresh_timer_1 then UIManager:unschedule(_resume_refresh_timer_1) end
+            if _resume_refresh_timer_2 then UIManager:unschedule(_resume_refresh_timer_2) end
+            _resume_refresh_timer_1 = function()
+                _resume_refresh_timer_1 = nil
+                repaintActiveHeaderSlots(RESUME_REFRESH_ITEMS)
+            end
+            _resume_refresh_timer_2 = function()
+                _resume_refresh_timer_2 = nil
+                repaintActiveHeaderSlots(RESUME_REFRESH_ITEMS)
+            end
+            UIManager:scheduleIn(0.6, _resume_refresh_timer_1)
+            UIManager:scheduleIn(1.8, _resume_refresh_timer_2)
+            local now_t = os.date("*t")
+            UIManager:scheduleIn(60 - now_t.sec, _autoRefresh)
+        end
+
+        local orig_onCharging = ReaderUI.onCharging
+        ReaderUI.onCharging = function(rui, ...)
+            if orig_onCharging then orig_onCharging(rui, ...) end
+            scheduleChargingRefresh(rui)
+        end
+
+        local orig_onNotCharging = ReaderUI.onNotCharging
+        ReaderUI.onNotCharging = function(rui, ...)
+            if orig_onNotCharging then orig_onNotCharging(rui, ...) end
+            scheduleChargingRefresh(rui)
+        end
+
+        local orig_onNetworkConnected = ReaderUI.onNetworkConnected
+        ReaderUI.onNetworkConnected = function(rui, ...)
+            if orig_onNetworkConnected then orig_onNetworkConnected(rui, ...) end
+            repaintActiveHeaderSlots({ "wifi" }, rui)
+        end
+
+        local orig_onNetworkDisconnected = ReaderUI.onNetworkDisconnected
+        ReaderUI.onNetworkDisconnected = function(rui, ...)
+            if orig_onNetworkDisconnected then orig_onNetworkDisconnected(rui, ...) end
+            repaintActiveHeaderSlots({ "wifi" }, rui)
+        end
+
+        local orig_onClose = ReaderUI.onClose
+        ReaderUI.onClose = function(rui, ...)
+            cancelRefreshTimers(true)
+            if orig_onClose then return orig_onClose(rui, ...) end
+        end
+    end
+
     if not CreDocument._zen_top_status_bar_margins_patched then
         CreDocument._zen_top_status_bar_margins_patched = true
         local orig_setPageMargins = CreDocument.setPageMargins
@@ -935,7 +1064,7 @@ local function apply_reader_top_status_bar()
             local document = self.ui and self.ui.document
             if document then
                 document._zen_top_status_bar_margin_reserve = self.view
-                    and self.view.view_mode == "page" and getReservedHeaderHeight() or 0
+                    and self.view.view_mode == "page" and getReservedHeaderHeight(self.view) or 0
             end
             local result = orig_onSetPageMargins(self, margins, ...)
             if document then document._zen_top_status_bar_margin_reserve = nil end
@@ -998,144 +1127,7 @@ local function apply_reader_top_status_bar()
         end
 
         -- Periodic refresh aligned to the top of each minute.
-        -- Armed once per ReaderView instance; cancelled on suspend, restarted on resume.
-        if self._header_clock_refresh and not _autoRefresh
-                and self._zen_header_auto_refresh_fn then
-            _autoRefresh = self._zen_header_auto_refresh_fn
-            local t = os.date("*t")
-            UIManager:scheduleIn(60 - t.sec, _autoRefresh)
-        elseif not self._header_clock_refresh then
-            self._header_clock_refresh = true
-            local view = self
-            local _autoRefreshFn
-            _autoRefreshFn = function()
-                if not (view.ui and view.ui.document) then
-                    _autoRefresh = nil
-                    return
-                end
-                if not should_show(view) then
-                    _autoRefresh = nil
-                    return
-                end
-                if is_view_active_top(view) then
-                    repaintHeaderSlots(view, MINUTE_REFRESH_ITEMS)
-                end
-                local t = os.date("*t")
-                UIManager:scheduleIn(60 - t.sec, _autoRefreshFn)
-            end
-            view._zen_header_auto_refresh_fn = _autoRefreshFn
-            _autoRefresh = _autoRefreshFn
-            local t = os.date("*t")
-            UIManager:scheduleIn(60 - t.sec, _autoRefreshFn)
-
-            -- Cancel timer on suspend so it does not fire during sleep.
-            local ReaderUI = require("apps/reader/readerui")
-            -- Shared upvalue between onSuspend and the charging hooks below.
-            local _charging_refresh_timer = nil
-            local _resume_refresh_timer_1 = nil
-            local _resume_refresh_timer_2 = nil
-            local orig_onSuspend = ReaderUI.onSuspend
-            ReaderUI.onSuspend = function(rui, ...)
-                if orig_onSuspend then orig_onSuspend(rui, ...) end
-                if _autoRefresh then
-                    UIManager:unschedule(_autoRefresh)
-                end
-                if _charging_refresh_timer then
-                    UIManager:unschedule(_charging_refresh_timer)
-                    _charging_refresh_timer = nil
-                end
-                if _resume_refresh_timer_1 then
-                    UIManager:unschedule(_resume_refresh_timer_1)
-                    _resume_refresh_timer_1 = nil
-                end
-                if _resume_refresh_timer_2 then
-                    UIManager:unschedule(_resume_refresh_timer_2)
-                    _resume_refresh_timer_2 = nil
-                end
-            end
-            local orig_onResume = ReaderUI.onResume
-            ReaderUI.onResume = function(rui, ...)
-                if orig_onResume then orig_onResume(rui, ...) end
-                if not should_show(view) then return end
-                DBG("onResume fired, _autoRefresh=", _autoRefresh and "armed" or "nil",
-                    "view._zen_header_dimen=", view._zen_header_dimen and "present" or "nil",
-                    "view.ui=", view.ui and "present" or "nil")
-                if _autoRefresh then
-                    UIManager:unschedule(_autoRefresh)
-                    -- Repaint immediately on wakeup only if no overlay is active.
-                    if is_view_active_top(view) then
-                        repaintHeaderSlots(view, RESUME_REFRESH_ITEMS)
-                    end
-                    -- Retry after wake overlays settle; first repaint can race
-                    -- with screensaver/AutoDim transitions.
-                    if _resume_refresh_timer_1 then UIManager:unschedule(_resume_refresh_timer_1) end
-                    if _resume_refresh_timer_2 then UIManager:unschedule(_resume_refresh_timer_2) end
-                    _resume_refresh_timer_1 = function()
-                        _resume_refresh_timer_1 = nil
-                        if is_view_active_top(view) then
-                            repaintHeaderSlots(view, RESUME_REFRESH_ITEMS)
-                        end
-                    end
-                    _resume_refresh_timer_2 = function()
-                        _resume_refresh_timer_2 = nil
-                        if is_view_active_top(view) then
-                            repaintHeaderSlots(view, RESUME_REFRESH_ITEMS)
-                        end
-                    end
-                    UIManager:scheduleIn(0.6, _resume_refresh_timer_1)
-                    UIManager:scheduleIn(1.8, _resume_refresh_timer_2)
-                    local now_t = os.date("*t")
-                    UIManager:scheduleIn(60 - now_t.sec, _autoRefresh)
-                end
-            end
-
-            -- Debounce charging events: USB negotiation fires NotCharging then
-            -- Charging within seconds; coalesce into one repaint after 1.5 s.
-            local function scheduleChargingRefresh()
-                if not should_show(view) then return end
-                if _charging_refresh_timer then
-                    UIManager:unschedule(_charging_refresh_timer)
-                end
-                _charging_refresh_timer = function()
-                    _charging_refresh_timer = nil
-                    if not (view.ui and view.ui.document) then return end
-                    if is_view_active_top(view) then
-                        repaintHeaderSlots(view, { "battery", "battery_icon", "battery_percent" })
-                    end
-                end
-                UIManager:scheduleIn(1.5, _charging_refresh_timer)
-            end
-            local orig_onCharging    = ReaderUI.onCharging
-            local orig_onNotCharging = ReaderUI.onNotCharging
-            ReaderUI.onCharging = function(rui, ...)
-                if orig_onCharging then orig_onCharging(rui, ...) end
-                scheduleChargingRefresh()
-            end
-            ReaderUI.onNotCharging = function(rui, ...)
-                if orig_onNotCharging then orig_onNotCharging(rui, ...) end
-                scheduleChargingRefresh()
-            end
-
-            -- Repaint on network state changes so the Wi-Fi icon flips
-            -- gray (searching) -> blue/red (connected/off) without a page turn.
-            local function repaintOnNetwork()
-                if not should_show(view) then return end
-                if not (view.ui and view.ui.document) then return end
-                if is_view_active_top(view) then
-                    repaintHeaderSlots(view, { "wifi" })
-                end
-            end
-            local orig_onNetworkConnected    = ReaderUI.onNetworkConnected
-            local orig_onNetworkDisconnected = ReaderUI.onNetworkDisconnected
-            ReaderUI.onNetworkConnected = function(rui, ...)
-                if orig_onNetworkConnected then orig_onNetworkConnected(rui, ...) end
-                repaintOnNetwork()
-            end
-            ReaderUI.onNetworkDisconnected = function(rui, ...)
-                if orig_onNetworkDisconnected then orig_onNetworkDisconnected(rui, ...) end
-                repaintOnNetwork()
-            end
-        end
+        armAutoRefresh()
     end
 end
 

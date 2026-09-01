@@ -8,6 +8,7 @@ describe("reader top status bar refresh", function()
     local saved_plugin
     local saved_settings
     local scheduled
+    local unscheduled
     local paint_rects
     local dirty_calls
     local paint_order
@@ -93,6 +94,7 @@ describe("reader top status bar refresh", function()
         saved_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
         saved_settings = G_reader_settings
         scheduled = {}
+        unscheduled = {}
         reset_paint_log()
 
         local screen_bb = {
@@ -112,7 +114,9 @@ describe("reader top status bar refresh", function()
             scheduleIn = function(_self, delay, callback)
                 scheduled[#scheduled + 1] = { delay = delay, callback = callback }
             end,
-            unschedule = function() end,
+            unschedule = function(_self, callback)
+                unscheduled[callback] = true
+            end,
             widgetRepaint = function()
                 paint_order[#paint_order + 1] = "header"
             end,
@@ -130,6 +134,7 @@ describe("reader top status bar refresh", function()
             onNotCharging = function() end,
             onNetworkConnected = function() end,
             onNetworkDisconnected = function() end,
+            onClose = function() return "closed" end,
         }
         CreDocument = {
             setPageMargins = function(self, left, top, right, bottom)
@@ -288,6 +293,8 @@ describe("reader top status bar refresh", function()
                 end,
             },
         }
+        ui.view = view
+        ReaderUI.instance = ui
         UIManager._window_stack = { { widget = ui } }
         ReaderView.paintTo(view, require("device").screen.bb, 0, 0)
         reset_paint_log()
@@ -310,13 +317,19 @@ describe("reader top status bar refresh", function()
         local document = {}
         local typeset = setmetatable({
             ui = { document = document },
-            view = { view_mode = view_mode },
+            view = {
+                view_mode = view_mode,
+                footer = {
+                    reclaim_height = false,
+                    getHeight = function() return 15 end,
+                },
+            },
             unscaled_margins = { 5, 10, 5, 12 },
         }, { __index = ReaderTypeset })
         return typeset, document
     end
 
-    it("adds the measured height only to effective paged CRE margins", function()
+    it("adds the bottom status bar height only to effective paged CRE margins", function()
         local typeset, document = make_typeset("page")
         assert.are.equal(1, G_reader_settings:readSetting("copt_status_line"))
         assert.is_false(G_reader_settings:readSetting("alt_status_bar"))
@@ -325,15 +338,25 @@ describe("reader top status bar refresh", function()
         assert.are.equal(startup_reader, disabled_reader)
 
         typeset:onSetPageMargins(typeset.unscaled_margins)
-        assert.same({ 5, 30, 5, 12 }, document.applied_margins)
-        assert.are.equal(20, document._zen_top_status_bar_reserved_height)
+        assert.same({ 5, 25, 5, 12 }, document.applied_margins)
+        assert.are.equal(15, document._zen_top_status_bar_reserved_height)
 
         typeset:onSetPageMargins(typeset.unscaled_margins)
-        assert.same({ 5, 30, 5, 12 }, document.applied_margins)
+        assert.same({ 5, 25, 5, 12 }, document.applied_margins)
 
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.show_bottom_border = true
         typeset:onSetPageMargins(typeset.unscaled_margins)
-        assert.same({ 5, 31, 5, 12 }, document.applied_margins)
+        assert.same({ 5, 26, 5, 12 }, document.applied_margins)
+    end)
+
+    it("keeps equal margins equal when the status bars reclaim their height", function()
+        local typeset, document = make_typeset("page")
+        typeset.view.footer.reclaim_height = true
+        typeset.unscaled_margins = { 5, 10, 5, 10 }
+
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.same({ 5, 10, 5, 10 }, document.applied_margins)
+        assert.are.equal(0, document._zen_top_status_bar_reserved_height)
     end)
 
     it("removes reserved space outside enabled paged CRE documents", function()
@@ -349,15 +372,19 @@ describe("reader top status bar refresh", function()
 
     it("reapplies base margins when switching page and scroll modes", function()
         local typeset, document = make_typeset("page")
-        local view = { view_mode = "page", ui = { typeset = typeset } }
+        local view = {
+            view_mode = "page",
+            footer = typeset.view.footer,
+            ui = { typeset = typeset },
+        }
         typeset.view = view
         typeset:onSetPageMargins(typeset.unscaled_margins)
-        assert.are.equal(30, document.applied_margins[2])
+        assert.are.equal(25, document.applied_margins[2])
 
         ReaderView.onSetViewMode(view, "scroll")
         assert.are.equal(10, document.applied_margins[2])
         ReaderView.onSetViewMode(view, "page")
-        assert.are.equal(30, document.applied_margins[2])
+        assert.are.equal(25, document.applied_margins[2])
     end)
 
     it("exposes the granular alt-status-bar items alongside combined items", function()
@@ -427,6 +454,54 @@ describe("reader top status bar refresh", function()
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.auto_refresh = false
         make_view()
         assert.are.equal(1, #scheduled)
+    end)
+
+    it("keeps one hook set and releases old reader views", function()
+        local handlers = {
+            onSuspend = ReaderUI.onSuspend,
+            onResume = ReaderUI.onResume,
+            onCharging = ReaderUI.onCharging,
+            onNotCharging = ReaderUI.onNotCharging,
+            onNetworkConnected = ReaderUI.onNetworkConnected,
+            onNetworkDisconnected = ReaderUI.onNetworkDisconnected,
+            onClose = ReaderUI.onClose,
+        }
+        local weak_first
+        do
+            local first = make_view()
+            weak_first = setmetatable({ first }, { __mode = "v" })
+        end
+        local second = make_view()
+
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(handlers.onSuspend, ReaderUI.onSuspend)
+        assert.are.equal(handlers.onResume, ReaderUI.onResume)
+        assert.are.equal(handlers.onCharging, ReaderUI.onCharging)
+        assert.are.equal(handlers.onNotCharging, ReaderUI.onNotCharging)
+        assert.are.equal(handlers.onNetworkConnected, ReaderUI.onNetworkConnected)
+        assert.are.equal(handlers.onNetworkDisconnected, ReaderUI.onNetworkDisconnected)
+        assert.are.equal(handlers.onClose, ReaderUI.onClose)
+
+        scheduled[1].callback()
+        assert.are.equal(2, #paint_rects)
+        collectgarbage("collect")
+        collectgarbage("collect")
+        assert.is_nil(weak_first[1])
+
+        local scheduled_before_resume = #scheduled
+        ReaderUI.onResume(second.ui)
+        local resume_timer_1 = scheduled[scheduled_before_resume + 1].callback
+        local resume_timer_2 = scheduled[scheduled_before_resume + 2].callback
+        ReaderUI.onCharging(second.ui)
+        local charging_timer = scheduled[#scheduled].callback
+        local auto_refresh = scheduled[1].callback
+
+        unscheduled = {}
+        assert.are.equal("closed", ReaderUI.onClose(second.ui, true))
+        assert.is_true(unscheduled[auto_refresh])
+        assert.is_true(unscheduled[resume_timer_1])
+        assert.is_true(unscheduled[resume_timer_2])
+        assert.is_true(unscheduled[charging_timer])
     end)
 
     it("paints footer-style progress and chapter ticks on the shared border", function()

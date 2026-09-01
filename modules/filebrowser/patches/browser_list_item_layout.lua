@@ -884,9 +884,7 @@ local function apply_browser_list_item_layout()
             end
             -- setupLayout already called updateItems before our wrapper was installed,
             -- so strip the current item_group now (covers return-from-reader).
-            local UIManager = require("ui/uimanager")
             stripListBorders(fc)
-            UIManager:setDirty(fc, "ui")
         end
     end
 

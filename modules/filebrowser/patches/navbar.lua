@@ -3432,11 +3432,6 @@ local function apply_navbar()
         else
             injectNavbar(self)
         end
-        -- On reinit (FM already in the window stack), dirty-mark so the updated navbar
-        -- is painted. On fresh init, UIManager:show(fm) inside showFiles handles it.
-        if FileManager.instance == self and not self.invisible then
-            UIManager:setDirty(self, "ui")
-        end
     end
 
     -- Restore the view state (group tab + optional detail) when returning from the reader.

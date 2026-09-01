@@ -235,6 +235,49 @@ describe("file manager status bar visibility", function()
         assert.are.equal(1, repaint_count)
     end)
 
+    it("builds the setup row without an extra titlebar repaint", function()
+        local next_tick
+        local repaint_count = 0
+        _G.__ZEN_UI_PLUGIN.config.status_bar.hide_browser_bar = false
+        FileManager.setupLayout = function() end
+        FileManager.updateTitleBarPath = function(self, path) self.updated_path = path end
+        UIManager.nextTick = function(_self, callback) next_tick = callback end
+        require("common/clock_timer").subscribe = function() end
+        require("modules/filebrowser/patches/status_bar")()
+
+        local next_row = { getSize = function() return { h = 1 } end }
+        assert.is_true(replace_upvalue(FileManager._updateStatusBar,
+            "createStatusRow", function() return next_row end))
+        assert.is_true(replace_upvalue(FileManager._updateStatusBar,
+            "repaintTitleBar", function() repaint_count = repaint_count + 1 end))
+
+        local function item()
+            return { getSize = function() return { h = 1 } end }
+        end
+        local title_group = { item(), item(), item(), item() }
+        function title_group:resetLayout() end
+        FileManager.title_bar = {
+            title_group = title_group,
+            titlebar_height = 4,
+            width = 600,
+            button_padding = 0,
+        }
+        FileManager.file_chooser = { path = "/library" }
+        FileManager.instance = FileManager
+        UIManager._window_stack = { { widget = FileManager } }
+
+        FileManager:setupLayout()
+        assert.are.equal(next_row, title_group[2])
+        assert.are.equal(0, repaint_count)
+
+        next_tick()
+        assert.are.equal("/library", FileManager.updated_path)
+        assert.are.equal(0, repaint_count)
+
+        FileManager:_updateStatusBar()
+        assert.are.equal(1, repaint_count)
+    end)
+
     it("routes the real-folder chevron through onFolderUp", function()
         local status_api
         local back_callback
