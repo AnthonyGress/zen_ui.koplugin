@@ -106,6 +106,49 @@ describe("reader lookup menus", function()
         assert.is_nil(shown)
     end)
 
+    it("shows KOReader's extend action for an existing highlight", function()
+        local dialog_spec
+        ZenSpec.replace("ui/widget/buttondialog", {
+            new = function(_, spec)
+                dialog_spec = spec
+                return spec
+            end,
+        })
+        local ReaderHighlight = { onShowHighlightMenu = function() return "stock" end }
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { highlight_lookup = true },
+                highlight_lookup = { allow_unknown_items = true },
+            },
+        }
+        require("modules/reader/patches/highlight_menu")()
+
+        local extended_index
+        local highlight = {
+            selected_text = { text = "existing highlight" },
+            ui = { handleEvent = function() end },
+            translate = function() end,
+            onHighlightSearch = function() end,
+            _getDialogAnchor = function() return {} end,
+            _highlight_buttons = {
+                ["01_select"] = function(_, index)
+                    return {
+                        enabled = true,
+                        callback = function() extended_index = index end,
+                    }
+                end,
+            },
+        }
+        ReaderHighlight.onShowHighlightMenu(highlight, 3)
+
+        assert.are.equal("lookup.extend", dialog_spec.buttons[1][1].icon)
+        assert.is_true(dialog_spec.buttons[1][1].enabled)
+        assert.are.equal(1, #dialog_spec.buttons)
+        dialog_spec.buttons[1][1].callback()
+        assert.are.equal(3, extended_index)
+    end)
+
     it("anchors the highlight menu outside the selected text", function()
         local dialog_spec
         ZenSpec.replace("ui/size", { padding = { small = 4 } })

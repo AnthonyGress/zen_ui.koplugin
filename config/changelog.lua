@@ -324,6 +324,7 @@ return {
         "Add language in Zen Settings > About",
         "Add more toggles/options to Featured widget",
         "Add first/last name sorting for authors",
+        "Add highlight extend option in 3 dot highlight menu",
         "Update Book details (order, items, open tags from book) in Library > Book details",
         "Updates to Reader top status bar (including colored icons)",
         "Reserve space in reflowable books (EPUB) for Reader top status bar",

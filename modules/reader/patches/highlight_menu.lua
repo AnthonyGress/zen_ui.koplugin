@@ -43,12 +43,11 @@ local function apply()
         return type(cfg) == "table" and cfg.show_ai_assistant ~= false
     end
 
-    -- Find the main button registered by assistant.koplugin (AI helper).
-    local function find_ai_button(self, index)
+    local function find_highlight_button(self, index, name)
         if not self._highlight_buttons then return nil end
         for key, fn_button in pairs(self._highlight_buttons) do
             local key_name = key:match("^%d+_(.*)$") or key
-            if key_name == "ai_assistant" then
+            if key_name == name then
                 local ok, btn = pcall(fn_button, self, index)
                 if ok and type(btn) == "table" and btn.callback then
                     return btn
@@ -62,7 +61,7 @@ local function apply()
     -- Only the keys we explicitly convert to icons; everything else is "other".
     -- ai_assistant is the main button registered by assistant.koplugin.
     local KNOWN_KEYS = {
-        highlight = true, search = true, translate = true,
+        select = true, highlight = true, search = true, translate = true,
         wikipedia = true, dictionary = true,
         ai_assistant = true,
     }
@@ -114,8 +113,13 @@ local function apply()
             return
         end
 
+        local extend_btn = index and find_highlight_button(self, index, "select")
         local buttons = {{
-            {
+            extend_btn and {
+                icon = "lookup.extend",
+                enabled = extend_btn.enabled,
+                callback = extend_btn.callback,
+            } or {
                 icon = "lookup.highlight",
                 enabled = self.hold_pos ~= nil,
                 callback = function()
@@ -151,7 +155,7 @@ local function apply()
         })
 
         if show_ai_assistant() then
-            local ai_btn = find_ai_button(self, index)
+            local ai_btn = find_highlight_button(self, index, "ai_assistant")
             if ai_btn then
                 table.insert(buttons[1], {
                     icon = "lookup.ai",
