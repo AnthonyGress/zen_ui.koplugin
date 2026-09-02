@@ -719,6 +719,22 @@ describe("file browser navbar navigation", function()
         assert.are.equal(0, dirty_calls)
     end)
 
+    it("reapplies a Library default after cold-start path tracking", function()
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "books"
+        local fm = make_instance()
+        fm.file_chooser.path = "/library/Fiction"
+        fm[1] = { fm.file_chooser }
+        FileManager.onPathChanged(fm, fm.file_chooser.path)
+        UIManager._window_stack = { { widget = fm } }
+        calls = {}
+
+        initial_reinject_callback()
+
+        assert.are.same({ "books:/library" }, calls)
+        assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+    end)
+
     it("defers hidden FileManager construction when restoring Home", function()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         _G.__ZEN_UI_LIBRARY_STATE = { tab = "home", page = 2 }

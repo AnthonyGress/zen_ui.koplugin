@@ -1,5 +1,12 @@
 local M = {}
 
+local HTML_SPACES = {
+    ["&nbsp;"] = " ",
+    ["&#32;"] = " ",
+    ["&#x20;"] = " ",
+    ["&#X20;"] = " ",
+}
+
 local VALID = {
     authors = true,
     authors_last = true,
@@ -14,16 +21,13 @@ function M.isMode(mode)
 end
 
 function M.key(name, mode)
-    local text = tostring(name or ""):match("^%s*(.-)%s*$")
-    local last, first = text:match("^([^,]+),%s*(.+)$")
-    if not last then
-        first, last = text:match("^(.-)%s+(%S+%s+%S+)$")
-        if not last then first, last = text:match("^(.*)%s+(%S+)$") end
+    local text = tostring(name or ""):gsub("&[#%w]+;", HTML_SPACES):match("^%s*(.-)%s*$")
+    local sort_text = text:gsub("%s+%b()$", "")
+    if mode == "authors_last" then
+        -- ponytail: Last-token heuristic; structured metadata is needed for compound surnames.
+        return sort_text:match("(%S+)$") or sort_text
     end
-    first, last = first or text, last or text
-    if mode == "authors_last" then return last end
-    -- ponytail: Final-two-word surnames; structured metadata is needed for universal parsing.
-    return first
+    return sort_text:match("^([^%s,]+)") or sort_text
 end
 
 function M.less(a, b, mode)

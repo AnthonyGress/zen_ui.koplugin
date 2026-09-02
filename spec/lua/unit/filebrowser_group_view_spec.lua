@@ -243,6 +243,13 @@ describe("file browser group views", function()
         end
     end)
 
+    it("normalizes last-name sort keys", function()
+        install_group_view({})
+        local author_sort = require("common/author_sort")
+        assert.are.equal("Me", author_sort.key("Test Me (Test company)", "authors_last"))
+        assert.are.equal("Martinez", author_sort.key("Miguel Rodrigo Martinez&#x20;", "authors_last"))
+    end)
+
     it("builds author, series, language, and tag pages from database groups", function()
         install_group_view({
             authors = {
@@ -486,7 +493,7 @@ describe("file browser group views", function()
 
         assert.are.equal("authors_last", config.group_view.authors_collate)
         assert.are.equal(1, home_rebuilds)
-        assert.are.same({ "Jane Austen", "Octavia Butler", "Gabriel García Márquez", "Alice Klein" }, {
+        assert.are.same({ "Jane Austen", "Octavia Butler", "Alice Klein", "Gabriel García Márquez" }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
             menu.item_table[3].text,
@@ -502,7 +509,7 @@ describe("file browser group views", function()
         assert.is_true(config.group_view.group_reverse.authors)
         assert.are.equal(2, home_rebuilds)
         assert.are.equal(2, saved)
-        assert.are.same({ "Alice Klein", "Gabriel García Márquez", "Octavia Butler", "Jane Austen" }, {
+        assert.are.same({ "Gabriel García Márquez", "Alice Klein", "Octavia Butler", "Jane Austen" }, {
             menu.item_table[1].text,
             menu.item_table[2].text,
             menu.item_table[3].text,

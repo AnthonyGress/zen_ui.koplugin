@@ -3515,7 +3515,7 @@ local function apply_navbar()
                 or FileManager.instance ~= fm then
             return false
         end
-        if resolve_default_tab() == "books" then
+        if resolve_default_tab() == "books" and active_tab == "books" then
             fm._zen_default_tab_bootstrapped = true
             return false
         end
