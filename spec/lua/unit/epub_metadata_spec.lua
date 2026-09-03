@@ -305,10 +305,18 @@ describe("embedded EPUB metadata", function()
         local owned_hash = companion.book_hash
         companion.book_hash = nil
         write_json(companion_path, companion)
-        local collided, collision_err = Epub.write(path, { title = "Hash-migrated" })
+        local collision_dir
+        local collided, collision_err = Epub.write(path, { title = "Hash-migrated" }, {
+            prepare_sidecar = function()
+                collision_dir = hash_sidecar(storage, path .. ".zen-metadata.tmp")
+                assert.is_true(util.makePath(collision_dir))
+                return true
+            end,
+        })
         assert.is_nil(collided)
         assert.matches("destination hash sidecar", collision_err, 1, true)
         assert.are.equal("Old Title", assert(Epub.read(path)).title)
+        if collision_dir ~= new_dir then remove_tree(collision_dir) end
         companion.book_hash = owned_hash
         write_json(companion_path, companion)
         assert.is_true(Epub.write(path, { title = "Hash-migrated" }))
