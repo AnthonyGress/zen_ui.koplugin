@@ -500,7 +500,9 @@ function ZenUI:init()
                 end
                 logger.info("showing ZenScreen")
                 local T = require("ffi/util").template
-                require("ui/uimanager"):show(ZenScreen:new{
+                local UIManager = require("ui/uimanager")
+                UIManager:forceRePaint()
+                UIManager:show(ZenScreen:new{
                     title       = _("ZenOS"),
                     title_icon  = true,
                     subtitle    = T(_("Updated to %1"), "v" .. current_ver),

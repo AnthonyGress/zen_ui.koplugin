@@ -487,7 +487,7 @@ local function apply_opening_banner()
                 bw = cover.w - 2 * border
             end
         else
-            local bottom_margin = Screen:isColorScreen() and Screen:scaleBySize(6) or 0
+            local bottom_margin = Screen:isColorScreen() and Screen:scaleBySize(8) or 0
             bx = 0
             by = Screen:getHeight() - banner_h - bottom_margin
             bw = Screen:getWidth()
@@ -566,6 +566,12 @@ local function apply_opening_banner()
 
     -- Home and Zen Mosaic book widgets bypass KOReader's stock item hooks.
     rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", set_opening_banner_cover)
+
+    local orig_show_reader = ReaderUI.showReader
+    ReaderUI.showReader = function(self, ...)
+        if not _last_cover_dimen then _tap_seq = _tap_seq + 1 end
+        return orig_show_reader(self, ...)
+    end
 
     -- Patch showReaderCoroutine.
     -- Do not show the stock opening message on duplicate opens, but preserve
