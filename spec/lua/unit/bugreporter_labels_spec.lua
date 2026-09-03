@@ -5,6 +5,7 @@ describe("bug reporter labels", function()
     local original_modules
     local payloads
     local UIManager
+    local version
 
     local module_names = {
         "android",
@@ -30,6 +31,7 @@ describe("bug reporter labels", function()
         end
 
         channel = "stable"
+        version = "1.0.0"
         payloads = {}
         UIManager = {
             show = function(self, widget) self.widget = widget end,
@@ -57,7 +59,7 @@ describe("bug reporter labels", function()
             new = function(_, props) return props end,
         })
         ZenSpec.replace("modules/settings/zen_settings_utils", {
-            get_plugin_version = function() return "1.0.0" end,
+            get_plugin_version = function() return version end,
             get_koreader_version = function() return "2026.01" end,
             get_device_model_name = function() return "Test device" end,
             get_device_firmware_display = function() return "n/a" end,
@@ -120,6 +122,11 @@ describe("bug reporter labels", function()
 
     it("adds the beta label on the beta update channel", function()
         channel = "beta"
+        assert.are.same({ "bug", "beta" }, submit().labels)
+    end)
+
+    it("adds the beta label for an alpha version on the stable update channel", function()
+        version = "1.0.0-alpha1"
         assert.are.same({ "bug", "beta" }, submit().labels)
     end)
 

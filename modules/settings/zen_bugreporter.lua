@@ -112,9 +112,9 @@ end
 -- Network submission
 -- ---------------------------------------------------------------------------
 
-local function submit_issue(title, body)
+local function submit_issue(title, body, version)
     local labels = { "bug" }
-    if updater.get_channel() == "beta" then
+    if updater.get_channel() == "beta" or version:find("-alpha", 1, true) then
         labels[#labels + 1] = "beta"
     end
     local payload = JSON.encode({ title = title, body = body, labels = labels })
@@ -330,7 +330,7 @@ function M._do_submit(ctx, bug_title, description, github_username)
             issue_body = zen_utils.truncateUtf8Bytes(issue_body, MAX_BODY, "\n...[truncated]")
         end
 
-        local issue_url, err = submit_issue(issue_title, issue_body)
+        local issue_url, err = submit_issue(issue_title, issue_body, zen_ver)
 
         UIManager:close(spinner)
 
