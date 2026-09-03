@@ -4,6 +4,7 @@ describe("file manager status bar visibility", function()
     local NetworkMgr
     local original_modules
     local original_plugin
+    local original_status_builder
     local created_text_widgets
 
     local function replace(name, module)
@@ -36,6 +37,7 @@ describe("file manager status bar visibility", function()
         UIManager = { _window_stack = {} }
         original_modules = {}
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        original_status_builder = rawget(_G, "__ZENOS_BUILD_STATUS_ROW")
         created_text_widgets = {}
 
         replace("ui/bidi", {})
@@ -137,6 +139,7 @@ describe("file manager status bar visibility", function()
             package.loaded[name] = saved.value
         end
         _G.__ZEN_UI_PLUGIN = original_plugin
+        _G.__ZENOS_BUILD_STATUS_ROW = original_status_builder
     end)
 
     it("renders the configured date item", function()
@@ -151,6 +154,21 @@ describe("file manager status bar visibility", function()
         assert.are.equal(1, #group)
         assert.are.equal("August 8th", group[1].text)
         assert.are.equal("August 8th", created_text_widgets[1].text)
+    end)
+
+    it("keeps the patch active with empty status items", function()
+        _G.__ZEN_UI_PLUGIN.config.status_bar = {
+            left_order = {}, center_order = {}, right_order = {},
+        }
+
+        require("modules/filebrowser/patches/status_bar")()
+
+        assert.is_true(_G.__ZEN_UI_PLUGIN.config.features.status_bar)
+        assert.are.same({}, _G.__ZEN_UI_PLUGIN.config.status_bar.left_order)
+        assert.are.same({}, _G.__ZEN_UI_PLUGIN.config.status_bar.center_order)
+        assert.are.same({}, _G.__ZEN_UI_PLUGIN.config.status_bar.right_order)
+        assert.is_function(FileManager._updateStatusBar)
+        assert.is_function(_G.__ZENOS_BUILD_STATUS_ROW)
     end)
 
     it("only hides Wi-Fi when it is fully off", function()

@@ -157,6 +157,24 @@ describe("config manager folder-path migration", function()
         assert.are.equal("cycle", config.quick_settings.rotate_action)
     end)
 
+    it("migrates a disabled status bar to empty item lists", function()
+        settings_file.data = {
+            features = { status_bar = false },
+            status_bar = {
+                left_order = { "time" },
+                center_order = { "date" },
+                right_order = { "wifi", "battery" },
+            },
+        }
+
+        local config = Manager.load()
+
+        assert.is_true(config.features.status_bar)
+        assert.are.same({}, config.status_bar.left_order)
+        assert.are.same({}, config.status_bar.center_order)
+        assert.are.same({}, config.status_bar.right_order)
+    end)
+
     it("recovers the sparse config created by the fresh-install merge bug", function()
         settings_file.data = {
             _meta = {

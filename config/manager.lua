@@ -99,6 +99,13 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
+    if cfg.features.status_bar == false then
+        cfg.features.status_bar = true
+        cfg.status_bar = type(cfg.status_bar) == "table" and cfg.status_bar or {}
+        cfg.status_bar.left_order, cfg.status_bar.center_order, cfg.status_bar.right_order = {}, {}, {}
+        changed = true
+    end
+
     if cfg.browser_hide_up_folder == nil and cfg.browser_up_folder ~= nil then
         cfg.browser_hide_up_folder = cfg.browser_up_folder
         changed = true

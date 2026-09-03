@@ -38,8 +38,7 @@ local function apply_status_bar()
     end
 
     local function is_enabled()
-        local features = zen_plugin.config and zen_plugin.config.features
-        return type(features) == "table" and features.status_bar == true
+        return true
     end
 
     -- === Persistent config ===
@@ -824,6 +823,14 @@ local function apply_status_bar()
         })
         return vg
     end
+
+    rawset(_G, "__ZENOS_BUILD_STATUS_ROW", function(width, opts)
+        opts = opts or {}
+        if opts.show_bottom_border == nil then
+            opts.show_bottom_border = config.show_bottom_border ~= false
+        end
+        return buildStatusRow(width, opts)
+    end)
 
     local function topmost_non_toast_widget()
         local stack = UIManager._window_stack
