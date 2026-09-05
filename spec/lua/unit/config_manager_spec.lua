@@ -93,6 +93,19 @@ describe("config manager folder-path migration", function()
         assert.is_false(config._meta.quickstart_shown_for_version)
     end)
 
+    it("fills missing defaults without sharing them or replacing saved arrays", function()
+        settings_file.data = { navbar = { order = { "home" } }, folder_cover_paths = {} }
+        local defaults = require("config/defaults")
+        local config = Manager.load()
+        assert.are.same({ "home" }, config.navbar.order)
+        assert.are.same({}, config.folder_cover_paths)
+        assert.is_true(config.features.navbar)
+        config.features.navbar = false
+        assert.is_true(defaults.features.navbar)
+        assert.are.equal(config, Manager.load())
+        assert.is_false(config.features.navbar)
+    end)
+
     it("reports a verified settings write failure", function()
         settings_file.file = "/tmp/zen-ui-spec/config.lua"
         settings_file.backup = function() return false end

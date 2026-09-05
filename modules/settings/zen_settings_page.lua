@@ -13,7 +13,6 @@ local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
 local TruncatedTextMessage = require("common/ui/truncated_text_message")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
-local zen_settings = require("modules/settings/zen_settings")
 
 local M = {}
 local active_page
@@ -859,7 +858,7 @@ function M.show(plugin, opts)
     restoring_arrange_resume = resume and resume.arrange or nil
     arrange_open_context = nil
     I18n.refresh()
-    local root_items = zen_settings.build(plugin).sub_item_table
+    local root_items = require("modules/settings/zen_settings").build(plugin).sub_item_table
     root_items._zen_title = _("Settings")
     local page = ZenSettingsPage:new{
         title = _("Settings"),

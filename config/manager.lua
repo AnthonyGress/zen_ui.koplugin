@@ -56,11 +56,7 @@ local function migrate_brand_plugin_paths(stored)
 end
 
 local function merged_with_defaults(stored)
-    local cfg = utils.deepcopy(defaults)
-    if type(stored) == "table" then
-        utils.deepmerge(stored, cfg)
-        cfg = stored
-    end
+    local cfg = type(stored) == "table" and stored or {}
     utils.deepmerge(cfg, defaults)
     return cfg
 end

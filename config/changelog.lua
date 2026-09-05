@@ -317,8 +317,8 @@ return {
         "Fix some icons not rendering"
      },
      ["3.3.0"] = {
-         "Add native metadata editor and Hardcover/Google Books/Open Library autofill (Library > Metadata)",
-         "Performance improvements to based on the benchmarks from Reddit",
+        "Add native metadata editor and Hardcover/Google Books/Open Library autofill (Library > Metadata)",
+        "Performance improvements and optimizations based on the benchmarks from Reddit",
         "Add support for multiple quote files",
         "Add context to translations",
         "Add language in Zen Settings > About",
