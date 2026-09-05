@@ -230,6 +230,26 @@ function M.build(ctx)
         }
     end
 
+    local function make_header_wifi_items()
+        return {
+            {
+                text = _("Hide when off"),
+                checked_func = function()
+                    return type(config.reader_top_status_bar) == "table"
+                        and config.reader_top_status_bar.wifi_hide_when_off == true
+                end,
+                callback = function()
+                    if type(config.reader_top_status_bar) ~= "table" then
+                        config.reader_top_status_bar = {}
+                    end
+                    config.reader_top_status_bar.wifi_hide_when_off =
+                        config.reader_top_status_bar.wifi_hide_when_off ~= true
+                    save_clock()
+                end,
+            },
+        }
+    end
+
     local function make_header_slot_items(slot_name, arrange_title)
         local order_key = slot_name .. "_order"
         local canonical = HEADER_CANONICAL[slot_name] or {}
@@ -347,6 +367,10 @@ function M.build(ctx)
                 item.checkmark_callback = item.callback
                 item.callback = nil
                 item.sub_item_table = make_custom_text_items()
+            elseif key == "wifi" then
+                item.checkmark_callback = item.callback
+                item.callback = nil
+                item.sub_item_table = make_header_wifi_items()
             end
             table.insert(t, item)
         end

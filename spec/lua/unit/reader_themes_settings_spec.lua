@@ -564,6 +564,13 @@ describe("reader themes settings", function()
         assert.is_not_nil(item_labels["Total pages"])
         assert.is_function(item_labels["Custom text"].checkmark_callback)
         assert.is_function(item_labels["Custom text"].sub_item_table[1].text_func)
+        local wifi = item_labels["Wi-Fi"]
+        local hide_wifi = wifi.sub_item_table[1]
+        assert.is_function(wifi.checkmark_callback)
+        assert.are.equal("Hide when off", hide_wifi.text)
+        assert.is_false(hide_wifi.checked_func())
+        hide_wifi.callback()
+        assert.is_true(config.reader_top_status_bar.wifi_hide_when_off)
 
         local top_items = {}
         for _i, item in ipairs(top.sub_item_table) do
@@ -584,6 +591,6 @@ describe("reader themes settings", function()
         assert.is_false(colored.checked_func())
         colored.callback()
         assert.is_true(colored.checked_func())
-        assert.are.equal(2, applies)
+        assert.are.equal(3, applies)
     end)
 end)

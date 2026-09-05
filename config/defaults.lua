@@ -285,6 +285,7 @@ local defaults = {
         bottom_border_progress = false,
         show_chapter_marks = false,
         colored = false,
+        wifi_hide_when_off = false,
         hide_in_cbz = true,
     },
     reader_themes = {

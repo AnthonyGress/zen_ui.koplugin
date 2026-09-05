@@ -129,6 +129,8 @@ local function apply_reader_top_status_bar()
             end
             return "\u{ECA8}", nil, colors.wifi_searching, true
         end
+        local cfg = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
+        if type(cfg) == "table" and cfg.wifi_hide_when_off == true then return nil end
         return "\u{ECA9}", nil, colors.wifi_off
     end
 

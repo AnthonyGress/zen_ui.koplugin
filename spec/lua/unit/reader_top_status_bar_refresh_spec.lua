@@ -17,6 +17,7 @@ describe("reader top status bar refresh", function()
     local build_group_from_texts
     local startup_reader
     local disabled_reader
+    local NetworkMgr
 
     local dependencies = {
         "apps/reader/modules/readerview",
@@ -36,6 +37,7 @@ describe("reader top status bar refresh", function()
         "ui/bidi",
         "ui/font",
         "ui/geometry",
+        "ui/network/manager",
         "ui/size",
         "ui/uimanager",
         "ui/widget/container/centercontainer",
@@ -192,6 +194,13 @@ describe("reader top status bar refresh", function()
         replace("ui/bidi", { wrap = function(value) return value end })
         replace("ui/font", { getFace = function() return {} end })
         replace("ui/geometry", geometry_class())
+        NetworkMgr = {
+            wifi_on = false,
+            connected = false,
+            isWifiOn = function(self) return self.wifi_on end,
+            isConnected = function(self) return self.connected end,
+        }
+        replace("ui/network/manager", NetworkMgr)
         replace("ui/size", { line = { thin = 1, medium = 1 }, padding = { small = 2 } })
         replace("ui/uimanager", UIManager)
         for _i, name in ipairs({
@@ -406,6 +415,16 @@ describe("reader top status bar refresh", function()
         assert.are.equal("7", item_fetchers.current_page(context))
         assert.are.equal("120", item_fetchers.total_pages(context))
         assert.are.equal("7 / 120", item_fetchers.page_progress(context))
+    end)
+
+    it("hides Wi-Fi only when it is off and the option is enabled", function()
+        assert.are.equal("\u{ECA9}", item_fetchers.wifi())
+
+        _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.wifi_hide_when_off = true
+        assert.is_nil(item_fetchers.wifi())
+
+        NetworkMgr.wifi_on = true
+        assert.are.equal("\u{ECA8}", item_fetchers.wifi())
     end)
 
     it("uses the bottom status bar's progress percentage format", function()
