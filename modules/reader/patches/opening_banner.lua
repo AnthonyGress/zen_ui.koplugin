@@ -110,6 +110,11 @@ local function apply_opening_banner()
         return ok and FileManager.instance and FileManager.instance.selected_files ~= nil
     end
 
+    local function is_chooser_item(item)
+        local menu = item and item.menu
+        return menu and (menu.select_directory ~= nil or menu.select_file ~= nil)
+    end
+
     local function should_prepare_for_tap(item, ...)
         local ges = select(2, ...)
         if not ges or ges.time == nil then return true end
@@ -286,6 +291,7 @@ local function apply_opening_banner()
 
         local orig_tap = MosaicMenuItem.onTapSelect
         MosaicMenuItem.onTapSelect = function(self_item, ...)
+            if is_chooser_item(self_item) then return orig_tap(self_item, ...) end
             _tap_seq = _tap_seq + 1
             if is_select_mode(self_item) then
                 _last_cover_dimen = nil
@@ -333,6 +339,7 @@ local function apply_opening_banner()
 
         local orig_tap = ListMenuItem.onTapSelect
         ListMenuItem.onTapSelect = function(self_item, ...)
+            if is_chooser_item(self_item) then return orig_tap(self_item, ...) end
             _tap_seq = _tap_seq + 1
             if is_select_mode(self_item) then
                 _last_cover_dimen = nil

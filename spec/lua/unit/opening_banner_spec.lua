@@ -379,6 +379,27 @@ describe("opening banner", function()
         assert.are.equal(1, #shown)
     end)
 
+    it("ignores file and directory chooser taps", function()
+        local ReaderUI, _, shown, _, _, ListMenuItem, MosaicMenuItem = install_stubs()
+        apply_patch()
+
+        local item = {
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = { x = 10, y = 20, w = 300, h = 60 },
+        }
+        item.menu = { select_file = true, select_directory = false }
+        assert.are.equal("selected", ListMenuItem.onTapSelect(item))
+
+        item.menu = { select_file = false, select_directory = true }
+        item._zen_cover_dimen = item.dimen
+        assert.are.equal("mosaic selected", MosaicMenuItem.onTapSelect(item))
+        assert.are.equal(0, #shown)
+
+        ReaderUI.showReaderCoroutine({ doShowReader = function() end }, "book.epub", {})
+        assert.are.equal(1, #shown)
+    end)
+
     it("does not prepare a list banner until the opening tap is accepted", function()
         local _, _, shown, _, _, ListMenuItem = install_stubs()
         local accepted = false
