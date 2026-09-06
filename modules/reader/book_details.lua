@@ -218,7 +218,14 @@ function M.getReadingTimes(ui, requested)
     if requested.time_remaining == true
             and avg_time and avg_time > 0 and avg_time < math.huge
             and current_page and total_pages and current_page <= total_pages then
-        time_left = math.floor((total_pages - current_page) * avg_time + 0.5)
+        local pages_left = total_pages - current_page
+        if db_pages and total_pages > 0 then
+            pages_left = pages_left * db_pages / total_pages
+        elseif type(stats) == "table"
+                and type(stats._zenPagesInStatisticsUnits) == "function" then
+            pages_left = stats:_zenPagesInStatisticsUnits(pages_left)
+        end
+        time_left = math.floor(pages_left * avg_time + 0.5)
     end
 
     local today_duration = requested.time_today == true

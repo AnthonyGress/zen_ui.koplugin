@@ -201,6 +201,7 @@ modules/reader/patches/reader_footer_presets.lua|integration
 modules/reader/patches/reader_footer_time_format.lua|integration
 modules/reader/patches/reader_top_status_bar.lua|integration
 modules/reader/patches/screensaver_cover.lua|integration
+modules/reader/patches/stable_page_statistics.lua|unit
 modules/reader/patches/status_on_open.lua|integration
 modules/reader/book_info_widget.lua|integration
 modules/reader/book_details.lua|unit

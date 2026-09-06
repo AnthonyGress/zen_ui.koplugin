@@ -376,6 +376,36 @@ describe("reader book details", function()
         assert.are.same({ read_time = true, time_remaining = true }, queried_fields[2])
     end)
 
+    it("converts rendered pages left into the statistics page unit", function()
+        local ui = reader_ui()
+        ui.statistics = {
+            avg_time = 60,
+            _zenPagesInStatisticsUnits = function(_stats, pages)
+                return pages * 0.3
+            end,
+        }
+        local BookDetails = require("modules/reader/book_details")
+
+        local time_left = BookDetails.getReadingTimes(ui, {
+            time_remaining = true,
+        })
+
+        assert.are.equal(1044, time_left)
+    end)
+
+    it("uses the database page unit with the fallback average", function()
+        local ui = reader_ui()
+        fallback_average = 60
+        fallback_pages = 300
+        local BookDetails = require("modules/reader/book_details")
+
+        local time_left = BookDetails.getReadingTimes(ui, {
+            time_remaining = true,
+        })
+
+        assert.are.equal(10440, time_left)
+    end)
+
     it("omits reading times when statistics are unavailable", function()
         local BookDetails = require("modules/reader/book_details")
         local time_left, read_time, today_duration, today_pages =

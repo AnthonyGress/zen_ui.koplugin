@@ -326,6 +326,7 @@ return {
         "Add first/last name sorting for authors",
         "Add highlight extend option in 3 dot highlight menu",
         "Add status bar to ZenPM",
+        "Use stable pages for page stats",
         "Update Book details (order, items, open tags from book) in Library > Book details",
         "Updates to Reader top status bar (including colored icons)",
         "Reserve space in reflowable books (EPUB) for Reader top status bar",
