@@ -312,15 +312,7 @@ local function cache_home_book(key, book)
     trim_home_book_cache()
 end
 
--- Home-screen widgets (featured/strip) can render covers much larger than the
--- file browser's list/mosaic cells. BookInfoManager's cache only ever grows a
--- cached cover, never shrinks it, so a cover first cached for a small list row
--- stays small (and gets pixelated when upscaled here) until something asks for
--- bigger. A third of the screen's linear size comfortably covers the largest
--- home-screen cover (the featured widget); extraction is still bounded by the
--- source cover's own resolution, so this never costs more than the book has.
--- Returns the {max_cover_w, max_cover_h} spec table to extract/cache covers at
--- for home-screen display, derived from the current screen size.
+-- Default extraction bounds before layout supplies a cover's actual size.
 local function home_cover_specs()
     local Screen = require("device").screen
     local short_side = math.min(Screen:getWidth(), Screen:getHeight())
@@ -363,14 +355,15 @@ local _cover_upgrade_consumers = {}
 local _inflight_cover_upgrade_paths = {}
 
 -- Takes everything queued in _pending_cover_upgrade_paths and launches a
--- single extractInBackground() batch for them at home-screen cover size, then
+-- single extractInBackground() batch at each path's requested cover size, then
 -- polls until each path's extraction completes (or the subprocess dies),
 -- invalidating that book's home-cache entry and notifying the consumers as
 -- results land.
 local function flush_cover_upgrade_queue()
     _cover_upgrade_scheduled = false
+    local pending = _pending_cover_upgrade_paths
     local paths = {}
-    for path in pairs(_pending_cover_upgrade_paths) do
+    for path in pairs(pending) do
         paths[#paths + 1] = path
     end
     _pending_cover_upgrade_paths = {}
@@ -397,17 +390,16 @@ local function flush_cover_upgrade_queue()
     end
     if BookInfoManager:isExtractingInBackground() then
         for _i, path in ipairs(paths) do
-            _pending_cover_upgrade_paths[path] = true
+            _pending_cover_upgrade_paths[path] = pending[path]
         end
         _cover_upgrade_scheduled = true
         require("ui/uimanager"):scheduleIn(1, flush_cover_upgrade_queue)
         return
     end
 
-    local specs = home_cover_specs()
     local files = {}
     for _i, path in ipairs(paths) do
-        files[#files + 1] = { filepath = path, cover_specs = specs }
+        files[#files + 1] = { filepath = path, cover_specs = pending[path] }
         _inflight_cover_upgrade_paths[path] = true
     end
 
@@ -473,11 +465,8 @@ local function flush_cover_upgrade_queue()
     UIManager:scheduleIn(1, poll)
 end
 
--- Adds `path` to the pending cover-upgrade queue (unless it's already
--- pending or mid-extraction) and schedules a debounced
--- flush_cover_upgrade_queue() call so several books queued in quick
--- succession are batched into one extraction run.
-local function queue_cover_upgrade(path, consumer)
+-- Merge queued size requests without restarting an in-flight extraction.
+local function queue_cover_upgrade(path, consumer, specs)
     if type(path) ~= "string" or path == "" then return end
     local consumers = _cover_upgrade_consumers[path]
     if not consumers then
@@ -485,8 +474,15 @@ local function queue_cover_upgrade(path, consumer)
         _cover_upgrade_consumers[path] = consumers
     end
     consumers[consumer == "strip" and "strip" or "full"] = true
-    if _pending_cover_upgrade_paths[path] or _inflight_cover_upgrade_paths[path] then return end
-    _pending_cover_upgrade_paths[path] = true
+    if _inflight_cover_upgrade_paths[path] then return end
+    specs = specs or home_cover_specs()
+    local queued = _pending_cover_upgrade_paths[path]
+    if queued then
+        queued.max_cover_w = math.max(queued.max_cover_w, specs.max_cover_w)
+        queued.max_cover_h = math.max(queued.max_cover_h, specs.max_cover_h)
+    else
+        _pending_cover_upgrade_paths[path] = specs
+    end
     if not _cover_upgrade_scheduled then
         _cover_upgrade_scheduled = true
         require("ui/uimanager"):scheduleIn(0.3, flush_cover_upgrade_queue)
@@ -2004,18 +2000,18 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             and DecodeCache:getFreshMetadata(path, now(), 30) or nil
         metadata = metadata or BookInfoManager:getBookInfo(path, false)
         if not metadata then return "failed" end
+        local specs = { max_cover_w = width, max_cover_h = height }
         if not metadata.cover_fetched then
-            queue_cover_upgrade(path, "strip")
+            queue_cover_upgrade(path, "strip", specs)
             return "pending"
         end
         if not metadata.has_cover or metadata.ignore_cover then
             invalidate_home_book_cache(path)
             return "ready"
         end
-        local specs = { max_cover_w = width, max_cover_h = height }
         if type(BookInfoManager.isCachedCoverInvalid) == "function"
                 and BookInfoManager.isCachedCoverInvalid(metadata, specs) then
-            queue_cover_upgrade(path, "strip")
+            queue_cover_upgrade(path, "strip", specs)
             return "pending"
         end
 
@@ -2025,7 +2021,7 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         info.cover_bb = nil
         if not info.cover_fetched then
             if source and source.free then pcall(source.free, source) end
-            queue_cover_upgrade(path, "strip")
+            queue_cover_upgrade(path, "strip", specs)
             return "pending"
         end
         if not info.has_cover or info.ignore_cover then
