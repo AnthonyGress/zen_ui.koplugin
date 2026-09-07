@@ -203,6 +203,45 @@ describe("embedded EPUB metadata", function()
         assert.are.equal("9780441013593", metadata.isbn)
     end)
 
+    it("edits and restores EPUBs whose mimetype entry is not first", function()
+        local entries, contents = archive_entries(path)
+        for _i, compression in ipairs({ "store", "deflate" }) do
+            local writer = Archiver.Writer:new()
+            assert.is_true(writer:open(path, "epub"))
+            assert.is_true(writer:setZipCompression("deflate"))
+            for _j, entry in ipairs(entries) do
+                if entry ~= "mimetype" then
+                    assert.is_true(writer:addFileFromMemory(entry, contents[entry]))
+                end
+            end
+            assert.is_true(writer:setZipCompression(compression))
+            assert.is_true(writer:addFileFromMemory("mimetype", contents.mimetype))
+            writer:close()
+            local original = read_bytes(path)
+
+            assert.are.equal("Old Title", assert(Epub.read(path)).title)
+            assert.is_true(Epub.write(path, { title = "Old Title" }))
+            assert.are.equal(original, read_bytes(path))
+            assert.is_true(Epub.write(path, { title = "New Title" }))
+            assert.are.equal("New Title", assert(Epub.read(path)).title)
+            local rewritten = read_bytes(path)
+            assert.are.equal("\0\0", rewritten:sub(9, 10))
+            assert.are.equal("mimetype", rewritten:sub(31, 38))
+            local saved_entries, saved_contents = archive_entries(path)
+            assert.same(entries, saved_entries)
+            for entry, content in pairs(contents) do
+                if entry ~= "OEBPS/content.opf" then
+                    assert.are.equal(content, saved_contents[entry])
+                end
+            end
+            assert.is_true(Epub.canRestore(path))
+            assert.are.equal(original, read_bytes(Epub.backupPath(path)))
+            assert.same({}, assert(Epub.restore(path)))
+            assert.are.equal(original, read_bytes(path))
+            assert.are.equal("Old Title", assert(Epub.read(path)).title)
+        end
+    end)
+
     it("rewrites metadata, preserves unknown content, and restores both directions", function()
         local old_snapshot = { title = "Sidecar title", authors = { "Sidecar author" } }
         assert.is_true(Epub.write(path, {

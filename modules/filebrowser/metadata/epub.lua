@@ -1058,13 +1058,18 @@ local function parse_container(xml)
     return path
 end
 
-local function raw_mimetype_is_first_and_stored(path)
+local function validate_zip_header(path, require_mimetype)
     local file, err = io.open(path, "rb")
     if not file then return nil, err end
     local header = file:read(30)
     if not header or #header ~= 30 or header:sub(1, 4) ~= "PK\003\004" then
         file:close()
         return nil, "the EPUB does not start with a ZIP file entry"
+    end
+    -- Only repacked output needs a first, uncompressed mimetype entry.
+    if not require_mimetype then
+        file:close()
+        return true
     end
     local function uint16(offset)
         local low, high = header:byte(offset, offset + 1)
@@ -1116,13 +1121,12 @@ local function scan_archive(path, capture, verify_all, scratch_path)
         if scratch_path then remove_file(scratch_path) end
         return nil, message
     end
-    local result = { paths = {}, contents = {}, first_path = nil }
+    local result = { paths = {}, contents = {} }
     local seen = {}
     for entry in reader:iterate() do
         if not archive_path_is_safe(entry.path) then
             return abort("the EPUB contains an unsafe archive entry path")
         end
-        if not result.first_path then result.first_path = entry.path end
         if seen[entry.path] then
             return abort("the EPUB contains duplicate archive entries")
         end
@@ -1164,7 +1168,7 @@ end
 local function inspect_epub(path, verify_all, scratch_path)
     local regular = regular_file(path)
     if not regular then return nil, "EPUB path is not a regular file" end
-    local ok, err = raw_mimetype_is_first_and_stored(path)
+    local ok, err = validate_zip_header(path)
     if not ok then return nil, err end
     local first
     first, err = scan_archive(path, {
@@ -1172,7 +1176,7 @@ local function inspect_epub(path, verify_all, scratch_path)
         ["META-INF/container.xml"] = true,
     }, verify_all, scratch_path)
     if not first then return nil, err end
-    if first.first_path ~= "mimetype" or first.contents.mimetype ~= MIMETYPE then
+    if first.contents.mimetype ~= MIMETYPE then
         return nil, "invalid EPUB mimetype entry"
     end
     local container = first.contents["META-INF/container.xml"]
@@ -1332,7 +1336,10 @@ local function repack(source_path, stage_path, opf_path, edited_opf, scratch_pat
 end
 
 local function validate_stage(path, source, values, present, scratch_path, expected_opf)
-    local stage, err = inspect_epub(path, true, scratch_path)
+    local ok, err = validate_zip_header(path, true)
+    if not ok then return nil, err end
+    local stage
+    stage, err = inspect_epub(path, true, scratch_path)
     if not stage then return nil, err end
     if stage.opf_path ~= source.opf_path or not same_paths(stage.paths, source.paths) then
         return nil, "rewritten EPUB does not contain the same files as the original"
