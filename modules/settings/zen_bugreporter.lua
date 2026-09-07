@@ -142,7 +142,9 @@ end
 
 function M.show_dialog(ctx)
     -- Require debug logging to be on so crash.log is useful.
-    if not (G_reader_settings and G_reader_settings:isTrue("debug_verbose")) then
+    if not (G_reader_settings
+            and G_reader_settings:isTrue("debug")
+            and G_reader_settings:isTrue("debug_verbose")) then
         local ConfirmBox = require("ui/widget/confirmbox")
         UIManager:show(ConfirmBox:new{
             text        = _("Debug logging must be enabled to submit bug reports.")
@@ -151,6 +153,7 @@ function M.show_dialog(ctx)
             ok_text     = _("Restart now"),
             cancel_text = _("Cancel"),
             ok_callback = function()
+                G_reader_settings:saveSetting("debug", true)
                 G_reader_settings:saveSetting("debug_verbose", true)
                 G_reader_settings:flush()
                 restart.request()

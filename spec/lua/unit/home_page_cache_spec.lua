@@ -570,6 +570,9 @@ describe("home data and book caches", function()
     it("notifies strip listeners without rebuilding Home for each extracted cover", function()
         local scheduled = {}
         local extraction_started = false
+        local screen = require("device").screen
+        screen.getWidth = function() return 900 end
+        screen.getHeight = function() return 600 end
         local UIManager = require("ui/uimanager")
         UIManager.scheduleIn = function(_self, delay, callback)
             scheduled[#scheduled + 1] = { delay = delay, callback = callback }
@@ -588,6 +591,7 @@ describe("home data and book caches", function()
         end
         require("bookinfomanager").extractInBackground = function(_self, files)
             assert.are.equal("/library/alpha.epub", files[1].filepath)
+            assert.are.same({ max_cover_w = 200, max_cover_h = 300 }, files[1].cover_specs)
             extraction_started = true
             return true
         end

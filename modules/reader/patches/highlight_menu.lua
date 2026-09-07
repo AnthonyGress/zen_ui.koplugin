@@ -9,6 +9,13 @@ local function apply()
     local Event = require("ui/event")
     local logger = require("common/zen_logger").new("highlight_menu")
     local LookupPluginItems = require("modules/reader/lookup_plugin_items")
+    local utils = require("common/utils")
+    local plugin_root = require("common/plugin_root")
+    local _icons_dir = plugin_root and plugin_root .. "/icons/"
+    local extend_icon = utils.resolveLocalIcon(_icons_dir, "lookup_extend")
+    if extend_icon then
+        utils.overrideIcons({ [extend_icon] = extend_icon }, false)
+    end
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
 
@@ -116,7 +123,7 @@ local function apply()
         local extend_btn = index and find_highlight_button(self, index, "select")
         local buttons = {{
             extend_btn and {
-                icon = "lookup.extend",
+                icon = extend_icon,
                 enabled = extend_btn.enabled,
                 callback = extend_btn.callback,
             } or {

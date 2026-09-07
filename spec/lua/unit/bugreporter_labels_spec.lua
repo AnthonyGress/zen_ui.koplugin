@@ -3,6 +3,7 @@ local JSON = require("json")
 describe("bug reporter labels", function()
     local channel
     local original_modules
+    local original_reader_settings
     local payloads
     local UIManager
     local version
@@ -25,6 +26,7 @@ describe("bug reporter labels", function()
     }
 
     before_each(function()
+        original_reader_settings = _G.G_reader_settings
         original_modules = {}
         for _i, name in ipairs(module_names) do
             original_modules[name] = package.loaded[name]
@@ -97,6 +99,7 @@ describe("bug reporter labels", function()
             package.loaded[name] = original_modules[name]
         end
         ZenSpec.unload("modules/settings/zen_bugreporter")
+        _G.G_reader_settings = original_reader_settings
     end)
 
     local function submit()
@@ -132,5 +135,22 @@ describe("bug reporter labels", function()
 
     it("keeps stable-channel reports labeled only as bugs", function()
         assert.are.same({ "bug" }, submit().labels)
+    end)
+
+    it("enables both KOReader debug flags before restarting", function()
+        local flushed = false
+        local restarted = false
+        local settings = ZenSpec.memorySettings()
+        settings.flush = function() flushed = true end
+        _G.G_reader_settings = settings
+        package.loaded["common/restart"].request = function() restarted = true end
+
+        require("modules/settings/zen_bugreporter").show_dialog({})
+        UIManager.widget.ok_callback()
+
+        assert.is_true(settings:isTrue("debug"))
+        assert.is_true(settings:isTrue("debug_verbose"))
+        assert.is_true(flushed)
+        assert.is_true(restarted)
     end)
 end)

@@ -1000,7 +1000,6 @@ local function apply_reader_top_status_bar()
                 "view._zen_header_dimen=", view._zen_header_dimen and "present" or "nil",
                 "view.ui=", view.ui and "present" or "nil")
             UIManager:unschedule(_autoRefresh)
-            repaintActiveHeaderSlots(RESUME_REFRESH_ITEMS, rui)
             if _resume_refresh_timer_1 then UIManager:unschedule(_resume_refresh_timer_1) end
             if _resume_refresh_timer_2 then UIManager:unschedule(_resume_refresh_timer_2) end
             _resume_refresh_timer_1 = function()
@@ -1081,7 +1080,10 @@ local function apply_reader_top_status_bar()
             local previous_mode = self.view_mode
             local result = orig_onSetViewMode(self, new_mode, ...)
             local typeset = self.ui and self.ui.typeset
-            if previous_mode ~= self.view_mode and typeset and typeset.unscaled_margins then
+            local highlight = self.ui and self.ui.highlight
+            -- Corner selection temporarily scrolls; UpdatePos would drop its active touch.
+            if previous_mode ~= self.view_mode and typeset and typeset.unscaled_margins
+                    and not (highlight and highlight.restore_page_mode_func) then
                 typeset:onSetPageMargins(typeset.unscaled_margins)
             end
             return result

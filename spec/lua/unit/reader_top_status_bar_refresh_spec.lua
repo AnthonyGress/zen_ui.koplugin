@@ -396,6 +396,32 @@ describe("reader top status bar refresh", function()
         assert.are.equal(25, document.applied_margins[2])
     end)
 
+    it("keeps margins unchanged during KOReader's temporary selection scrolling", function()
+        local typeset, document = make_typeset("page")
+        local view = typeset.view
+        local highlight = {}
+        view.ui = { typeset = typeset, highlight = highlight }
+        typeset:onSetPageMargins(typeset.unscaled_margins)
+        assert.are.equal(25, document.applied_margins[2])
+
+        local margin_updates = 0
+        typeset.onSetPageMargins = function() margin_updates = margin_updates + 1 end
+        highlight.restore_page_mode_func = function()
+            ReaderView.onSetViewMode(view, "page")
+        end
+        ReaderView.onSetViewMode(view, "scroll")
+        assert.are.equal("scroll", view.view_mode)
+        assert.are.equal(0, margin_updates) -- UpdatePos would reset the active hold gesture.
+        assert.are.equal(25, document.applied_margins[2])
+
+        highlight.restore_page_mode_func()
+        highlight.restore_page_mode_func = nil
+        assert.are.equal("page", view.view_mode)
+        assert.are.equal(0, margin_updates)
+        ReaderView.onSetViewMode(view, "scroll")
+        assert.are.equal(1, margin_updates)
+    end)
+
     it("exposes the granular alt-status-bar items alongside combined items", function()
         local icon, icon_suffix = item_fetchers.battery_icon()
         local percent = item_fetchers.battery_percent()
@@ -565,13 +591,15 @@ describe("reader top status bar refresh", function()
         assert_single_slot(500)
     end)
 
-    it("refreshes only configured dynamic slots on resume", function()
+    it("defers configured dynamic slot refreshes until after resume", function()
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.left_order = { "book_title" }
         _G.__ZEN_UI_PLUGIN.config.reader_top_status_bar.right_order = { "wifi", "battery" }
         make_view()
 
         ReaderUI.onResume({})
 
+        assert.are.equal(0, #paint_rects)
+        scheduled[2].callback()
         assert.are.equal(2, #paint_rects)
         assert.same({ 250, 500 }, { paint_rects[1].x, paint_rects[2].x })
         assert.are.equal(2, #dirty_calls)

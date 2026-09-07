@@ -323,7 +323,9 @@ end
 -- for home-screen display, derived from the current screen size.
 local function home_cover_specs()
     local Screen = require("device").screen
-    return { max_cover_w = math.floor(Screen:getWidth() / 3), max_cover_h = math.floor(Screen:getHeight() / 3) }
+    local short_side = math.min(Screen:getWidth(), Screen:getHeight())
+    local long_side = math.max(Screen:getWidth(), Screen:getHeight())
+    return { max_cover_w = math.floor(short_side / 3), max_cover_h = math.floor(long_side / 3) }
 end
 
 -- cover_sizetag stores the native (original) image dimensions, e.g. "600x900".
